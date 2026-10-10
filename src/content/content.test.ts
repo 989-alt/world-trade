@@ -127,6 +127,11 @@ describe('events', () => {
     }
   });
 
+  it('steel-dumping leave choice cites the 1970s steel case', () => {
+    const leave = EVENTS.find((e) => e.id === 'steel-dumping')!.choices.find((c) => c.id === 'leave')!;
+    expect(leave.feedbackKo).toContain('1970');
+  });
+
   it('relocation and fair-trade choices have both plus and minus', () => {
     for (const id of ['factory-relocation', 'fair-trade']) {
       for (const c of EVENTS.find((e) => e.id === id)!.choices) {
