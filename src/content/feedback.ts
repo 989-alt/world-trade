@@ -22,7 +22,7 @@ const josa = (s: string, withB: string, noB: string) => s + (batchim(s) ? withB 
 
 /** 수입 거래 까닭 판정: 정답 = 항구의 최고 축 */
 export const whySells = (portName: string, goodName: string) =>
-  `${portName}에서 ${josa(goodName, '을', '를')} 싸게 파는 까닭은 무엇일까요?`;
+  `${josa(portName, '이', '가')} ${josa(goodName, '을', '를')} 싸게 파는 까닭은?`;
 
 /** 수출 거래 까닭 판정: 정답 = 항구의 결핍 축 */
 export const whyBuys = (portName: string, goodName: string) =>
