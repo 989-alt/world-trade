@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { playBgm } from './audio/audio';
 import type { GameEvent } from './content/types';
 import { withLog } from './engine/economy';
-import { AUTOSAVE_POINTS, loadGame, saveGame } from './engine/save';
+import { AUTOSAVE_POINTS, SAVE_KEY, loadGame, saveGame } from './engine/save';
 import type { GameState, LogEvent, LogInput } from './engine/types';
 import { setDialogOpen } from './game/boot';
 import { gameStore, resumeSailing, startSailing } from './game/SailingScene';
@@ -26,9 +26,20 @@ const onLog = (e: LogInput) => {
 };
 const logScreen = (name: string) => onLog({ type: 'screen', name });
 
-/** save.ts AUTOSAVE_POINTS 를 로그로 읽는다. judgment_done = 까닭 판정이 맞았거나 두 번째 시도 */
+/** save.ts AUTOSAVE_POINTS 를 로그로 읽는다. judgment_done = 까닭 판정이 맞았거나 두 번째 시도. 에필로그 진입도 저장(새로 고침하면 에필로그부터) */
 const autosaveAt = (e: LogEvent) =>
-  e.type === 'judge_cause' ? e.correct || e.attempt === 2 : (AUTOSAVE_POINTS as readonly string[]).includes(e.type);
+  e.type === 'judge_cause'
+    ? e.correct || e.attempt === 2
+    : (e.type === 'stage' && e.stage === 'epilogue') || (AUTOSAVE_POINTS as readonly string[]).includes(e.type);
+
+/** 완주(stage done) 뒤엔 이어할 판이 없다 */
+const clearSave = () => {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch {
+    /* 저장소 접근 불가 */
+  }
+};
 
 const SAVE_FAILED = '저장하지 못했습니다';
 const LOAD_FAILED = '저장된 판을 읽지 못했습니다';
@@ -54,6 +65,7 @@ export function App() {
       if (s.log.length < seen) seen = 0; // 새 판
       const fresh = s.log.slice(seen);
       seen = s.log.length;
+      if (s.stage === 'done') return clearSave();
       if (fresh.some(autosaveAt) && !saveGame(s).ok) setToast(SAVE_FAILED);
     });
   }, []);

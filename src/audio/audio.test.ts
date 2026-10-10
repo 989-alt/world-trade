@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MANIFEST } from '../assets/manifest';
+import manifestJson from '../../public/assets-manifest.json?raw';
 import { BGM, FADE_MS, MUTE_KEY, RESULT_MS, createAudio, type Deps, type El } from './audio';
 
 type Fake = El & { src: string; plays: number; paused: boolean; fail: () => void };
@@ -147,6 +148,10 @@ describe('asset manifest', () => {
       expect(p, p).toMatch(/^assets\/(ui|img|bgm)\//);
       expect(onDisk.has(p), p).toBe(true);
     }
+  });
+
+  it('public/assets-manifest.json(dist 로 복사됨)이 manifest.ts 와 같다', () => {
+    expect(JSON.parse(manifestJson)).toEqual(MANIFEST);
   });
 
   it('src 가 문자열로 쓰는 에셋 경로는 전부 매니페스트에 있다', () => {
