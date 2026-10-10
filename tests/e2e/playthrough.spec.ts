@@ -4,7 +4,7 @@ import { expect, test, type Download, type Page } from '@playwright/test';
 import { EVENTS } from '../../src/content/events';
 import { PORT_BY_ID } from '../../src/content/ports';
 import type { PortId } from '../../src/content/types';
-import { URL as GAME_URL, answerEvent, homeTrade, judgeAndTrade, leave, logOf, newGame, sail, state } from './helpers';
+import { URL as GAME_URL, answerEvent, homeTrade, judge, judgeAndTrade, leave, logOf, newGame, row, sail, state, stepAndGo } from './helpers';
 
 const RESULT_PATH = fileURLToPath(new URL('./fixtures/last-result.json', import.meta.url));
 const SAIL_BUDGET_MS = 4 * 60_000; // S8 항해 누적 ≤ 4분
@@ -79,7 +79,21 @@ async function playthrough(page: Page): Promise<Run> {
   expect(restored.cash).toBe(before.cash);
   expect(restored.location).toBe('singapore');
   await judgeAndTrade(page, 'crude-oil', 'sell', 2);
-  await judgeAndTrade(page, 'natural-gas', 'sell', 2);
+  // Q1: 판정을 마친 뒤 새로 고침 → 같은 상품 다시 → 판정 다이얼로그 없이 시세·거래 칸, 판정 로그 그대로
+  await judge(page, 'natural-gas', 'sell');
+  const judged = async () => (await state(page)).log.filter((e) => e.type === 'judge_dir' || e.type === 'judge_cause').length;
+  const judgedBefore = await judged();
+  await page.reload();
+  await page.getByRole('button', { name: '이어하기' }).click();
+  await expect(page.locator('.port-ui .ribbon.name')).toHaveText(PORT_BY_ID.singapore.nameKo);
+  const gas = row(page, 'natural-gas', 'last');
+  await expect(gas.locator('.p')).not.toHaveText('?');
+  await gas.click();
+  const dlg = page.locator('.port-ui .speech');
+  await expect(dlg.locator('.trade')).toBeVisible();
+  await expect(dlg.locator('.choices')).toHaveCount(0);
+  expect(await judged()).toBe(judgedBefore);
+  await stepAndGo(page, '.port-ui .speech', 2, '팔기');
   await leave(page);
 
   // 4 부산: 급유(0), 화장품 싣기, 반도체 사기

@@ -83,4 +83,15 @@ describe('save / load', () => {
     expect(bad({ location: 'sea', shipPos: { x: 0, y: 1 } }).ok).toBe(true);
     expect(bad({ location: 'chile' }).ok).toBe(true);
   });
+
+  it('Q4 junk depot / eventsDrawn / fuel / portCalls / departures → save_corrupted', () => {
+    const bad = (patch: Record<string, unknown>) => loadGame(mem({ [SAVE_KEY]: JSON.stringify({ ...game(), ...patch }) }));
+    for (const patch of [
+      { depot: undefined }, { depot: null }, { depot: {} },
+      { eventsDrawn: undefined }, { eventsDrawn: 'x' },
+      { fuel: undefined }, { fuel: '300' },
+      { portCalls: undefined }, { portCalls: null },
+      { departures: undefined }, { departures: '0' },
+    ]) expect(bad(patch)).toEqual({ ok: false, notice: 'save_corrupted' });
+  });
 });

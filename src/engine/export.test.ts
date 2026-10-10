@@ -44,9 +44,10 @@ describe('buildResult', () => {
       grade: { grade: 'C', nameKo: '견습' },
       invariants: { cashStart: START_CASH, maxRefuel: MAX_REFUEL, portCalls: PORT_CALLS, tank: TANK, maxLegFuel: MAX_LEG_FUEL },
       ledger: [],
+      manual: [],
       log: s.log,
     });
-    expect(Object.keys(r).sort()).toEqual(['finishedAt', 'grade', 'invariants', 'ledger', 'log', 'nickname', 'seat', 'seed', 'summary', 'version'].sort());
+    expect(Object.keys(r).sort()).toEqual(['finishedAt', 'grade', 'invariants', 'ledger', 'log', 'manual', 'nickname', 'seat', 'seed', 'summary', 'version'].sort());
   });
   it('F3 summary.judgeDir 도 1차 시도만(결과 화면과 같은 잣대)', () => {
     let s = reduce(newGame(7, { nickname: '바다', seat: '7' }), { type: 'START_MAIN' }).state;
@@ -60,6 +61,17 @@ describe('buildResult', () => {
     expect(r.summary.judgeCause).toEqual({ firstTryCorrect: 1, total: 1 });
     expect(r.summary.judgeDir.correct + r.summary.judgeCause.firstTryCorrect).toBe(resultStats(s).judge.correct);
     expect(r.summary.judgeDir.total + r.summary.judgeCause.total).toBe(resultStats(s).judge.total);
+  });
+  it('Q2 수동 일지 ledger_manual → manual 배열·CSV 끝 행, S3 ledger 는 자동 행 그대로', () => {
+    let s = reduce(newGame(7, { nickname: '바다', seat: '7' }), { type: 'START_MAIN' }).state;
+    s = withLog(s, { type: 'ledger_manual', exporter: '사우디아라비아', good: '원유', importer: '대한민국', correct: true });
+    const r = buildResult(s);
+    expect(r.manual).toEqual([{ exporter: '사우디아라비아', good: '원유', importer: '대한민국', correct: true }]);
+    expect(r.ledger).toEqual([]);
+    expect(r.summary.ledgerRows).toBe(0);
+    const lines = toCsv(r.ledger, r.manual).slice(1).split('\r\n');
+    expect(lines[1]).toBe('+,사우디아라비아,원유,대한민국,✓');
+    expect(toCsv([], [{ exporter: '일본', good: '로봇', importer: '일본', correct: false }])).toContain('+,일본,로봇,일본,✕\r\n');
   });
   it('downloadFiles is a no-op without a DOM', () => {
     const s = newGame(1, { nickname: 'a', seat: '1' });

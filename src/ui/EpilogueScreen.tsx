@@ -16,25 +16,28 @@ export function sentenceGate(submits: number, editing: boolean, text: string) {
   return { readOnly: !open, canSubmit: open && long, canEdit: submits === 1 && !editing };
 }
 
-/** 비교 막대 값: 입항(머물기 제외)마다 판 값 − 산 값을 합해 평균. 머문 턴(autarky)은 0 */
+/** 비교 막대 값(§4.5): 무역 턴 평균 = 비자급 턴 현금 증감(판 값 − 산 값 − 통관 수수료 − 급유비) ÷ 실제 입항 수.
+ *  입항 전(출발 전 부산 구매 등) 비용은 다음 입항 몫이라 합계에만 들고 턴을 따로 세지 않는다.
+ *  예인 직후 입항은 거래 없는 입항(자급자족 턴과 같은 로그)이라 분모에서 뺀다. 머문 턴(autarky)은 0 */
 export function compareBars(log: LogEvent[]) {
   let here = 'busan';
-  let call = 0;
-  const net = new Map<number, number>();
-  const add = (n: number) => net.set(call, (net.get(call) ?? 0) + n);
+  let net = 0;
+  let calls = 0;
+  let prev: LogEvent['type'] | null = null;
   for (const e of log) {
-    if (e.type === 'port_call') { here = e.port; call = e.turn; net.set(call, net.get(call) ?? 0); }
+    if (e.type === 'port_call') { here = e.port; if (prev !== 'towed') calls++; }
     else if (e.type === 'depart') here = 'sea';
-    else if (e.type === 'buy_home') add(-e.price * e.qty);
+    else if (e.type === 'buy_home') net -= e.price * e.qty;
+    else if (e.type === 'refuel') net -= e.cost;
     else if (e.type === 'trade') {
-      if (e.dir === 'import' && e.to === 'busan' && here !== 'busan') add(-e.price * e.qty); // 해외에서 산 값
-      else add(e.price * e.qty); // 판 값
+      const v = e.price * e.qty;
+      net += (e.dir === 'import' && e.to === 'busan' && here !== 'busan' ? -v : v) - (e.fee ?? 0); // 해외에서 산 값 / 판 값
     }
+    prev = e.type;
   }
-  const vals = [...net.values()];
   return {
-    tradeAvg: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0,
-    tradeCalls: vals.length,
+    tradeAvg: calls ? Math.round(net / calls) : 0,
+    tradeCalls: calls,
     stayTurns: log.filter((e) => e.type === 'autarky').length,
   };
 }

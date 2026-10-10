@@ -24,18 +24,17 @@ export function checkManualRow(exporter: string, good: string, importer: string)
   return { complete, correct };
 }
 
-type Manual = { exporter: string; good: string; importer: string; ok: boolean };
 type Props = { state: Pick<GameState, 'log'>; onLog: (e: LogInput) => void; onDone: () => void };
 
 export function LedgerScreen({ state, onLog, onDone }: Props) {
   const rows = buildLedger(state);
   const [f, setF] = useState({ exporter: '', good: '', importer: '' });
-  const [manual, setManual] = useState<Manual[]>([]);
+  // 수동 행은 로그에서 읽는다 — 새로 고침·재진입에도 남고 다시 추가되지 않는다
+  const manual = state.log.flatMap((e) => (e.type === 'ledger_manual' ? [e] : []));
   const chk = checkManualRow(f.exporter, f.good, f.importer);
   const add = () => {
     if (!chk.complete || manual.length >= 1) return;
-    setManual([{ ...f, ok: chk.correct }]);
-    onLog({ type: 'screen', name: chk.correct ? 'ledger-manual-ok' : 'ledger-manual-wrong' });
+    onLog({ type: 'ledger_manual', ...f, correct: chk.correct });
   };
   const bind = (k: keyof typeof f, label: string) => (
     <input class="ep-in" placeholder={label} aria-label={label} value={f[k]} disabled={manual.length > 0}
@@ -51,7 +50,7 @@ export function LedgerScreen({ state, onLog, onDone }: Props) {
             <tr key={i}><td>{r.portCall}</td><td>{r.exporter}</td><td>{r.good}</td><td>{r.importer}</td><td>{r.cause}</td></tr>
           ))}
           {manual.map((m, i) => (
-            <tr key={`m${i}`} class={m.ok ? 'ok' : 'wrong'}><td>+</td><td>{m.exporter}</td><td>{m.good}</td><td>{m.importer}</td><td>{m.ok ? '✓' : '✕'}</td></tr>
+            <tr key={`m${i}`} class={m.correct ? 'ok' : 'wrong'}><td>+</td><td>{m.exporter}</td><td>{m.good}</td><td>{m.importer}</td><td>{m.correct ? '✓' : '✕'}</td></tr>
           ))}
         </tbody>
       </table>

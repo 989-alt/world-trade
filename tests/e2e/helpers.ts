@@ -70,12 +70,12 @@ export async function leave(page: Page): Promise<void> {
   await page.locator('.port-ui .acts .btn.orange').click();
 }
 
-const row = (page: Page, good: GoodId, which: 'first' | 'last') =>
+export const row = (page: Page, good: GoodId, which: 'first' | 'last') =>
   page.locator('.port-ui .rows .row').filter({ has: page.locator('.n', { hasText: new RegExp(`^${GOOD_BY_ID[good].nameKo}$`) }) })[which]();
 
 const tradeCount = async (page: Page) => (await state(page)).log.filter((e) => ['trade', 'load', 'buy_home'].includes(e.type)).length;
 
-async function stepAndGo(page: Page, scope: string, qty: number, action: string): Promise<void> {
+export async function stepAndGo(page: Page, scope: string, qty: number, action: string): Promise<void> {
   const box = page.locator(scope);
   for (let i = 1; i < qty; i++) await box.getByRole('button', { name: '늘리기' }).click();
   await expect(box.locator('.stepper b')).toHaveText(String(qty));
@@ -102,10 +102,10 @@ export function causeChoices(port: PortId, good: GoodId, dir: Dir): { right: str
 }
 
 /**
- * 외국 항구: 줄 클릭 → 방향 판정(정답) → 까닭 판정(wrongFirst 면 1차 오답 후 정답) → 수량 → 사기/팔기.
+ * 외국 항구: 줄 클릭 → 방향 판정(정답) → 까닭 판정(wrongFirst 면 1차 오답 후 정답).
  * 사는 줄은 시세표 앞쪽, 파는 줄은 뒤쪽(싱가포르는 같은 상품이 둘 다 있다).
  */
-export async function judgeAndTrade(page: Page, good: GoodId, mode: 'buy' | 'sell', qty: number, wrongFirst = false): Promise<void> {
+export async function judge(page: Page, good: GoodId, mode: 'buy' | 'sell', wrongFirst = false): Promise<void> {
   const port = (await state(page)).location as PortId;
   const dir: Dir = mode === 'buy' ? 'import' : 'export';
   await row(page, good, mode === 'buy' ? 'first' : 'last').click();
@@ -118,5 +118,10 @@ export async function judgeAndTrade(page: Page, good: GoodId, mode: 'buy' | 'sel
     await expect(dlg.getByRole('button', { name: c.wrong, exact: true })).toBeDisabled();
   }
   await dlg.getByRole('button', { name: c.right, exact: true }).click();
+}
+
+/** judge → 수량 → 사기/팔기 */
+export async function judgeAndTrade(page: Page, good: GoodId, mode: 'buy' | 'sell', qty: number, wrongFirst = false): Promise<void> {
+  await judge(page, good, mode, wrongFirst);
   await stepAndGo(page, '.port-ui .speech', qty, mode === 'buy' ? '사기' : '팔기');
 }

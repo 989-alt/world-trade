@@ -19,6 +19,8 @@ export type LogEvent =
   | { t: number; type: 'sentence'; text: string }
   | { t: number; type: 'mindmap'; slot: string; answer: string; correct: boolean }
   | { t: number; type: 'screen'; name: string }
+  /** 에필로그 ① 수동 일지 1행(학생이 쓴 세 칸 그대로) */
+  | { t: number; type: 'ledger_manual'; exporter: string; good: string; importer: string; correct: boolean }
   | { t: number; type: 'towed'; to: PortId }
   | { t: number; type: 'refuel'; port: PortId; fuel: number; cost: number }
   | { t: number; type: 'port_call'; port: PortId; turn: number }

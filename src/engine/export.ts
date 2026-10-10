@@ -24,8 +24,12 @@ export type ExportResult = {
   grade: Grade;
   invariants: Invariants;
   ledger: LedgerRow[];
+  /** 에필로그 수동 일지 행(S3 집계는 ledger 자동 행만) */
+  manual: ManualRow[];
   log: LogEvent[];
 };
+
+export type ManualRow = { exporter: string; good: string; importer: string; correct: boolean };
 
 export function buildResult(state: GameState, now = new Date()): ExportResult {
   const dirs = state.log.filter((e) => e.type === 'judge_dir' && e.attempt === 1);
@@ -48,6 +52,7 @@ export function buildResult(state: GameState, now = new Date()): ExportResult {
     grade: computeGrade(state),
     invariants: { cashStart: START_CASH, maxRefuel: MAX_REFUEL, portCalls: PORT_CALLS, tank: TANK, maxLegFuel: MAX_LEG_FUEL },
     ledger,
+    manual: state.log.flatMap((e) => (e.type === 'ledger_manual' ? [{ exporter: e.exporter, good: e.good, importer: e.importer, correct: e.correct }] : [])),
     log: state.log,
   };
 }
@@ -57,9 +62,13 @@ const cell = (v: string | number) => {
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
-/** RFC 4180 + UTF-8 BOM(엑셀 한글) */
-export function toCsv(rows: LedgerRow[]): string {
-  const lines = [['입항', '수출국', '물자·서비스', '수입국', '까닭'], ...rows.map((r) => [r.portCall, r.exporter, r.good, r.importer, r.cause])];
+/** RFC 4180 + UTF-8 BOM(엑셀 한글). 수동 행은 끝에 입항 '+'·까닭 ✓/✕(일지 화면과 같은 표기) */
+export function toCsv(rows: LedgerRow[], manual: ManualRow[] = []): string {
+  const lines = [
+    ['입항', '수출국', '물자·서비스', '수입국', '까닭'],
+    ...rows.map((r) => [r.portCall, r.exporter, r.good, r.importer, r.cause]),
+    ...manual.map((m) => ['+', m.exporter, m.good, m.importer, m.correct ? '✓' : '✕']),
+  ];
   return '﻿' + lines.map((l) => l.map(cell).join(',')).join('\r\n') + '\r\n';
 }
 
@@ -82,7 +91,7 @@ export function downloadFiles(result: ExportResult): boolean {
   const names = fileNames(result.nickname, new Date(result.finishedAt));
   const files: [string, Blob][] = [
     [names.json, new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' })],
-    [names.csv, new Blob([toCsv(result.ledger)], { type: 'text/csv;charset=utf-8' })],
+    [names.csv, new Blob([toCsv(result.ledger, result.manual)], { type: 'text/csv;charset=utf-8' })],
   ];
   for (const [name, blob] of files) {
     const url = URL.createObjectURL(blob);

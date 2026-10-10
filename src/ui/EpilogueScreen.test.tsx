@@ -103,6 +103,32 @@ describe('compare bars', () => {
       { type: 'autarky', turn: 3 });
     expect(compareBars(s.log)).toEqual({ tradeAvg: Math.round((-80 + 200) / 2), tradeCalls: 2, stayTurns: 1 });
   });
+  it('Q3 출발 전 부산 구매는 다음 입항 몫(가짜 턴 없음), 입항 수만 분모', () => {
+    const log = withLog(fresh(),
+      { type: 'buy_home', good: 'phone', qty: 1, price: 180 },
+      { type: 'depart', port: 'busan', departure: 1 },
+      { type: 'port_call', port: 'saudi', turn: 1 },
+      { type: 'trade', from: 'busan', to: 'saudi', good: 'phone', qty: 1, price: 480, dir: 'export' },
+      { type: 'depart', port: 'saudi', departure: 2 },
+      { type: 'port_call', port: 'busan', turn: 2 },
+      { type: 'autarky', turn: 3 }).log;
+    expect(compareBars(log)).toEqual({ tradeAvg: 150, tradeCalls: 2, stayTurns: 1 });
+  });
+  it('Q3 통관 수수료·급유비 차감, 예인 직후 입항은 분모 제외', () => {
+    const log = withLog(fresh(),
+      { type: 'port_call', port: 'japan', turn: 1 },
+      { type: 'trade', from: 'japan', to: 'busan', good: 'robot', qty: 1, price: 228, dir: 'import', fee: 23 },
+      { type: 'refuel', port: 'japan', fuel: 10, cost: 50 },
+      { type: 'depart', port: 'japan', departure: 2 },
+      { type: 'port_call', port: 'singapore', turn: 2 },
+      { type: 'trade', from: 'japan', to: 'singapore', good: 'robot', qty: 1, price: 380, dir: 'transit' },
+      { type: 'refuel', port: 'singapore', fuel: 50, cost: 100 },
+      { type: 'autarky', turn: 3 }).log;
+    expect(compareBars(log).tradeAvg).toBe(Math.round((380 - 228 - 23 - 50 - 100) / 2));
+    const towed = withLog({ ...fresh(), log }, { type: 'depart', port: 'singapore', departure: 3 },
+      { type: 'towed', to: 'chile' }, { type: 'port_call', port: 'chile', turn: 4 }, { type: 'refuel', port: 'chile', fuel: 300, cost: 150 }).log;
+    expect(compareBars(towed)).toMatchObject({ tradeCalls: 2, tradeAvg: Math.round((380 - 228 - 23 - 50 - 100 - 150) / 2) });
+  });
 });
 
 describe('epilogue wiring', () => {

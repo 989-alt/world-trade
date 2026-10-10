@@ -73,7 +73,8 @@ export function loadGame(storage: KV | null = defaultStorage()): LoadResult {
     !STAGES.includes(s.stage as string) ||
     !(s.location === 'sea' || (PORT_IDS as readonly string[]).includes(s.location as string)) ||
     !s.shipPos || !unit(s.shipPos.x) || !unit(s.shipPos.y) ||
-    !Array.isArray(s.eventQueue)
+    !Array.isArray(s.eventQueue) || !Array.isArray(s.eventsDrawn) || !Array.isArray(s.depot) ||
+    typeof s.fuel !== 'number' || typeof s.portCalls !== 'number' || typeof s.departures !== 'number'
   ) {
     return { ok: false, notice: 'save_corrupted' };
   }

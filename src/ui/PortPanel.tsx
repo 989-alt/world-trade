@@ -1,10 +1,10 @@
 import { render } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { GOODS, GOOD_BY_ID } from '../content/goods';
 import { PORT_BY_ID } from '../content/ports';
 import type { GoodId } from '../content/types';
 import { buyPrice, priceAt, qtyOf, sellsHere, withLog } from '../engine/economy';
-import { canMove, flagOwnSpecialty, startJudgment, turnDelay, type JudgmentSession } from '../engine/judgment';
+import { canMove, flagOwnSpecialty, restoreSessions, startJudgment, turnDelay, type JudgmentSession } from '../engine/judgment';
 import type { Log } from '../engine/log';
 import { createRng, type Rng } from '../engine/rng';
 import type { GameState, LogInput, Result } from '../engine/types';
@@ -67,8 +67,11 @@ const storeLog = (store: GameStore): Log => ({
 function PortCall({ store, state, close }: { store: GameStore; state: GameState; close: () => void }) {
   const port = PORT_BY_ID[state.location as Exclude<GameState['location'], 'sea'>];
   const home = port.id === 'busan';
-  const entries = useRef(new Map<string, Entry>()).current;
-  const rng = useRef<Rng>(createRng(state.seed + state.portCalls)).current;
+  const [rng] = useState<Rng>(() => createRng(state.seed + state.portCalls));
+  // 이번 입항의 판정은 로그에서 되살린다(새로 고침·이어하기 뒤 재판정·로그 중복 없음)
+  const [entries] = useState(() => new Map<string, Entry>(
+    [...restoreSessions(state.log, rng.shuffle, storeLog(store))].map(([k, session]) => [k, { session, last: null }]),
+  ));
   const [selected, setSelected] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
   const [, bump] = useState(0);

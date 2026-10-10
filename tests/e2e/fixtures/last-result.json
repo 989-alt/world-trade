@@ -3,7 +3,7 @@
   "nickname": "별",
   "seat": "3",
   "seed": 42,
-  "finishedAt": "2026-10-10T08:01:19.221Z",
+  "finishedAt": "2026-10-10T09:06:13.172Z",
   "summary": {
     "cash": 4208,
     "portCalls": 6,
@@ -118,6 +118,7 @@
       "cause": "지리적 위치 ✓"
     }
   ],
+  "manual": [],
   "log": [
     {
       "type": "screen",
@@ -288,7 +289,7 @@
     {
       "type": "refuel",
       "port": "saudi",
-      "fuel": 93.44355888842742,
+      "fuel": 93.4441746038145,
       "cost": 100,
       "t": 26
     },
@@ -482,6 +483,16 @@
       "t": 49
     },
     {
+      "type": "screen",
+      "name": "game",
+      "t": 50
+    },
+    {
+      "type": "screen",
+      "name": "port-singapore",
+      "t": 51
+    },
+    {
       "type": "trade",
       "from": "saudi",
       "to": "singapore",
@@ -489,83 +500,83 @@
       "qty": 2,
       "price": 70,
       "dir": "transit",
-      "t": 50
+      "t": 52
     },
     {
       "type": "depart",
       "port": "singapore",
       "departure": 4,
-      "t": 51
+      "t": 53
     },
     {
       "type": "screen",
       "name": "event-factory-relocation",
-      "t": 52
+      "t": 54
     },
     {
       "type": "event_choice",
       "event": "factory-relocation",
       "choice": "move",
-      "t": 53
+      "t": 55
     },
     {
       "type": "port_call",
       "port": "busan",
       "turn": 4,
-      "t": 54
+      "t": 56
     },
     {
       "type": "screen",
       "name": "port-busan",
-      "t": 55
+      "t": 57
     },
     {
       "type": "refuel",
       "port": "busan",
-      "fuel": 109.62930860466881,
+      "fuel": 109.62746718583372,
       "cost": 0,
-      "t": 56
+      "t": 58
     },
     {
       "type": "load",
       "good": "cosmetics",
       "qty": 2,
-      "t": 57
+      "t": 59
     },
     {
       "type": "buy_home",
       "good": "semiconductor",
       "qty": 2,
       "price": 210,
-      "t": 58
+      "t": 60
     },
     {
       "type": "depart",
       "port": "busan",
       "departure": 5,
-      "t": 59
+      "t": 61
     },
     {
       "type": "screen",
       "name": "event-fair-trade",
-      "t": 60
+      "t": 62
     },
     {
       "type": "event_choice",
       "event": "fair-trade",
       "choice": "fair",
-      "t": 61
+      "t": 63
     },
     {
       "type": "port_call",
       "port": "japan",
       "turn": 5,
-      "t": 62
+      "t": 64
     },
     {
       "type": "screen",
       "name": "port-japan",
-      "t": 63
+      "t": 65
     },
     {
       "type": "judge_dir",
@@ -574,7 +585,7 @@
       "answer": "export",
       "correct": true,
       "attempt": 1,
-      "t": 64
+      "t": 66
     },
     {
       "type": "judge_cause",
@@ -583,7 +594,7 @@
       "answer": "resource",
       "correct": true,
       "attempt": 1,
-      "t": 65
+      "t": 67
     },
     {
       "type": "trade",
@@ -593,7 +604,7 @@
       "qty": 2,
       "price": 560,
       "dir": "export",
-      "t": 66
+      "t": 68
     },
     {
       "type": "judge_dir",
@@ -602,7 +613,7 @@
       "answer": "import",
       "correct": true,
       "attempt": 1,
-      "t": 67
+      "t": 69
     },
     {
       "type": "judge_cause",
@@ -611,7 +622,7 @@
       "answer": "tech",
       "correct": true,
       "attempt": 1,
-      "t": 68
+      "t": 70
     },
     {
       "type": "trade",
@@ -621,24 +632,24 @@
       "qty": 2,
       "price": 228,
       "dir": "import",
-      "t": 69
+      "t": 71
     },
     {
       "type": "depart",
       "port": "japan",
       "departure": 6,
-      "t": 70
+      "t": 72
     },
     {
       "type": "port_call",
       "port": "singapore",
       "turn": 6,
-      "t": 71
+      "t": 73
     },
     {
       "type": "screen",
       "name": "port-singapore",
-      "t": 72
+      "t": 74
     },
     {
       "type": "judge_dir",
@@ -647,7 +658,7 @@
       "answer": "export",
       "correct": true,
       "attempt": 1,
-      "t": 73
+      "t": 75
     },
     {
       "type": "judge_cause",
@@ -656,7 +667,7 @@
       "answer": "geo",
       "correct": true,
       "attempt": 1,
-      "t": 74
+      "t": 76
     },
     {
       "type": "trade",
@@ -666,7 +677,7 @@
       "qty": 2,
       "price": 200,
       "dir": "export",
-      "t": 75
+      "t": 77
     },
     {
       "type": "judge_dir",
@@ -675,7 +686,7 @@
       "answer": "export",
       "correct": true,
       "attempt": 1,
-      "t": 76
+      "t": 78
     },
     {
       "type": "judge_cause",
@@ -684,7 +695,7 @@
       "answer": "geo",
       "correct": true,
       "attempt": 1,
-      "t": 77
+      "t": 79
     },
     {
       "type": "trade",
@@ -694,77 +705,77 @@
       "qty": 2,
       "price": 380,
       "dir": "transit",
-      "t": 78
+      "t": 80
     },
     {
       "type": "stage",
       "stage": "epilogue",
-      "t": 79
+      "t": 81
     },
     {
       "type": "screen",
       "name": "epilogue-ledger",
-      "t": 80
-    },
-    {
-      "type": "screen",
-      "name": "epilogue-compare",
-      "t": 81
-    },
-    {
-      "type": "sentence",
-      "text": "나라마다 자연환경과 자원, 기술이 달라서 잘 만드는 것이 다르기 때문에 무역을 한다.",
       "t": 82
     },
     {
       "type": "screen",
-      "name": "epilogue-mind",
+      "name": "epilogue-compare",
       "t": 83
+    },
+    {
+      "type": "sentence",
+      "text": "나라마다 자연환경과 자원, 기술이 달라서 잘 만드는 것이 다르기 때문에 무역을 한다.",
+      "t": 84
+    },
+    {
+      "type": "screen",
+      "name": "epilogue-mind",
+      "t": 85
     },
     {
       "type": "mindmap",
       "slot": "meaning",
       "answer": "무역",
       "correct": true,
-      "t": 84
+      "t": 86
     },
     {
       "type": "mindmap",
       "slot": "import",
       "answer": "수입",
       "correct": true,
-      "t": 85
+      "t": 87
     },
     {
       "type": "mindmap",
       "slot": "export",
       "answer": "수출",
       "correct": true,
-      "t": 86
+      "t": 88
     },
     {
       "type": "mindmap",
       "slot": "cause",
       "answer": "차이",
       "correct": true,
-      "t": 87
+      "t": 89
     },
     {
       "type": "mindmap",
       "slot": "interdependence",
       "answer": "상호의존",
       "correct": true,
-      "t": 88
+      "t": 90
     },
     {
       "type": "screen",
       "name": "epilogue-result",
-      "t": 89
+      "t": 91
     },
     {
       "type": "stage",
       "stage": "done",
-      "t": 90
+      "t": 92
     }
   ]
 }

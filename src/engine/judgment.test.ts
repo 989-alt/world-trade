@@ -5,8 +5,9 @@ import { PORT_BY_ID } from '../content/ports';
 import { createLog } from './log';
 import {
   answerCause, answerDir, canMove, customsFee, flagOwnSpecialty, judgmentResult,
-  revealPrices, startJudgment, tradeSlots, turnDelay, type Dir, type Shuffle,
+  restoreSessions, revealPrices, startJudgment, tradeSlots, turnDelay, type Dir, type JudgmentSession, type Shuffle,
 } from './judgment';
+import type { LogEvent } from './types';
 
 // 테스트 전용 시드 셔플 (엔진 rng.ts 와 무관)
 const mulberry32 = (a: number) => () => {
@@ -262,5 +263,46 @@ describe('gates and order', () => {
     expect(flagOwnSpecialty('vietnam', 'phone')).toBe(FEEDBACK.M7.textKo);
     expect(flagOwnSpecialty('saudi', 'crude-oil')).toBeNull();
     expect(flagOwnSpecialty('busan', 'phone')).toBeNull();
+  });
+});
+
+describe('Q1 restoreSessions — 새로 고침 뒤 이번 입항 판정 복원', () => {
+  const play = (seed: number) => {
+    const log = createLog([{ t: 1, type: 'judge_dir', port: 'saudi', good: 'crude-oil', answer: 'import', correct: true, attempt: 1 }]);
+    log.push({ type: 'screen', name: 'port-japan' });
+    const events = log.events as unknown as LogEvent[];
+    events.push({ t: 99, type: 'port_call', port: 'japan', turn: 2 });
+    const shuffle = seeded(seed);
+    const robot = startJudgment({ port: 'japan', good: 'robot', dir: 'import', shuffle, log });
+    const other = startJudgment({ port: 'japan', good: 'semiconductor', dir: 'export', shuffle, log });
+    if (!robot.ok || !other.ok) throw new Error('start');
+    answerDir(robot.session, 'import');
+    answerCause(robot.session, 'nature');
+    answerCause(robot.session, 'tech');
+    answerDir(other.session, 'import');
+    return { events, robot: robot.session, other: other.session };
+  };
+
+  it('step·시도·retried·delay·수수료·선택지 순서가 같고, 복원은 로그를 남기지 않는다', () => {
+    const { events, robot, other } = play(5);
+    const n = events.length;
+    const target = createLog(events as never);
+    const got = restoreSessions(events, seeded(5), target);
+    expect([...got.keys()]).toEqual(['import:robot', 'export:semiconductor']);
+    const strip = ({ log: _l, ...s }: JudgmentSession) => s;
+    expect(strip(got.get('import:robot')!)).toEqual(strip(robot));
+    expect(strip(got.get('export:semiconductor')!)).toEqual(strip(other));
+    expect(customsFee(228, got.get('import:robot')!)).toBe(23);
+    expect(events.length).toBe(n);
+    // 복원 뒤 이어서 답하면 원래 로그에 붙는다
+    answerDir(got.get('export:semiconductor')!, 'export');
+    expect(events.length).toBe(n + 1);
+    expect(got.get('export:semiconductor')!.dirAttempts).toBe(2);
+  });
+
+  it('마지막 port_call 이전 판정은 복원하지 않는다', () => {
+    const { events } = play(5);
+    const later = [...events, { t: 200, type: 'port_call', port: 'singapore', turn: 3 } as LogEvent];
+    expect(restoreSessions(later, seeded(5), createLog()).size).toBe(0);
   });
 });

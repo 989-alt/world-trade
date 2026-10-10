@@ -3,6 +3,7 @@ import { PORT_BY_ID } from '../content/ports';
 import { GOOD_BY_ID } from '../content/goods';
 import { FEEDBACK, shortageOption, whyBuys, whyRelays, whySells } from '../content/feedback';
 import type { Log } from './log';
+import type { LogEvent } from './types';
 
 /** 한국 회사 기준: 외국 항구에서 사면 import, 팔면 export (싱가포르 중계도 거래마다 이 둘 중 하나) */
 export type Dir = 'import' | 'export';
@@ -121,6 +122,34 @@ export function answerCause(
     feedback: FEEDBACK.M4.textKo,
     revealed: { axes: s.correctCauses, hintKo: p.hintKo, source: p.source },
   };
+}
+
+/** 새로 고침·이어하기 복원: 마지막 port_call 뒤 judge_dir/judge_cause 를 로그 순서대로 재생해 이번 입항의 판정 세션을 되살린다.
+ *  세션은 첫 judge_dir 순서대로 startJudgment(같은 seed rng 소비 순서), 답은 다시 로그하지 않는다. 키 = `${dir}:${good}` (PortPanel entries 와 같음).
+ *  까닭 로그엔 방향이 없어 같은 상품의 까닭 단계 세션 중 가장 늦게 연 것에 붙인다 */
+export function restoreSessions(events: readonly LogEvent[], shuffle: Shuffle, log: Log): Map<string, JudgmentSession> {
+  const sessions = new Map<string, JudgmentSession>();
+  let from = 0;
+  events.forEach((e, i) => { if (e.type === 'port_call') from = i + 1; });
+  const quiet: Log = { events: [], push: (e) => e as ReturnType<Log['push']> };
+  for (const e of events.slice(from)) {
+    if (e.type === 'judge_dir') {
+      const dir: Dir = e.correct ? e.answer : e.answer === 'import' ? 'export' : 'import';
+      const key = `${dir}:${e.good}`;
+      if (!sessions.has(key)) {
+        const j = startJudgment({ port: e.port, good: e.good, dir, shuffle, log: quiet });
+        if (!j.ok) continue;
+        sessions.set(key, j.session);
+      }
+      const s = sessions.get(key)!;
+      if (s.step === 'dir') answerDir(s, e.answer);
+    } else if (e.type === 'judge_cause') {
+      const s = [...sessions.values()].reverse().find((x) => x.good === e.good && x.step === 'cause');
+      if (s) answerCause(s, e.answer);
+    }
+  }
+  for (const s of sessions.values()) s.log = log;
+  return sessions;
 }
 
 /** 판정이 끝난 뒤의 통관 결과. 거래는 언제나 열린다 */

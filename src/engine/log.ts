@@ -12,6 +12,7 @@ export type LogEvent =
   | { t: number; type: 'sentence'; text: string }
   | { t: number; type: 'mindmap'; slot: string; answer: string; correct: boolean }
   | { t: number; type: 'screen'; name: string }
+  | { t: number; type: 'ledger_manual'; exporter: string; good: string; importer: string; correct: boolean }
   | { t: number; type: 'towed'; to: PortId }
   | { t: number; type: 'refuel'; port: PortId; fuel: number; cost: number };
 
