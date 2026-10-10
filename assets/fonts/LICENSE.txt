@@ -1,0 +1,2 @@
+Jua (Woowa Brothers) and Noto Sans KR (Google) — SIL Open Font License 1.1.
+woff2 subsets as served by fonts.googleapis.com (2026-10-10), self-hosted so the game makes no network requests.
