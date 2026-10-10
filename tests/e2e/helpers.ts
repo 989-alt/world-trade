@@ -56,7 +56,13 @@ export async function sail(page: Page, port: PortId): Promise<number> {
   }
   const ms = Date.now() - t0;
   await page.locator('.sail-ui .prompt .btn').click();
-  await expect(page.locator('.port-ui .ribbon.name')).toHaveText(PORT_BY_ID[port].nameKo);
+  // 밀린 필수 카드가 있으면 입항 직전에 뜬다(F1) → 답하면 바로 입항
+  const ribbon = page.locator('.port-ui .ribbon.name');
+  for (const t1 = Date.now(); !(await ribbon.isVisible()); ) {
+    if (Date.now() - t1 > 10_000) throw new Error(`dock ${port}: 항구 화면이 안 열림`);
+    if (!(await answerEvent(page))) await page.waitForTimeout(100);
+  }
+  await expect(ribbon).toHaveText(PORT_BY_ID[port].nameKo);
   return ms;
 }
 

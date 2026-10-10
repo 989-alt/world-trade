@@ -3,7 +3,7 @@
   "nickname": "별",
   "seat": "3",
   "seed": 42,
-  "finishedAt": "2026-10-10T07:26:54.323Z",
+  "finishedAt": "2026-10-10T08:01:19.221Z",
   "summary": {
     "cash": 4208,
     "portCalls": 6,
@@ -288,7 +288,7 @@
     {
       "type": "refuel",
       "port": "saudi",
-      "fuel": 93.44467097876051,
+      "fuel": 93.44355888842742,
       "cost": 100,
       "t": 26
     },
@@ -522,7 +522,7 @@
     {
       "type": "refuel",
       "port": "busan",
-      "fuel": 109.62853819494381,
+      "fuel": 109.62930860466881,
       "cost": 0,
       "t": 56
     },

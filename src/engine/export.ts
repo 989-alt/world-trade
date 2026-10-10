@@ -16,6 +16,7 @@ export type ExportResult = {
     cash: number;
     portCalls: number;
     factoryLevel: number;
+    /** 1차 시도만(결과 화면 R15 와 같은 잣대) */
     judgeDir: { correct: number; total: number };
     judgeCause: { firstTryCorrect: number; total: number };
     ledgerRows: number;
@@ -27,7 +28,7 @@ export type ExportResult = {
 };
 
 export function buildResult(state: GameState, now = new Date()): ExportResult {
-  const dirs = state.log.filter((e) => e.type === 'judge_dir');
+  const dirs = state.log.filter((e) => e.type === 'judge_dir' && e.attempt === 1);
   const causes = state.log.filter((e) => e.type === 'judge_cause' && e.attempt === 1);
   const ledger = buildLedger(state);
   return {

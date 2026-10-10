@@ -217,6 +217,51 @@ test('예인 — 급유 없이 두 구간(부산→칠레, 칠레→부산) 연�
   await expect.poll(async () => (await state(page)).fuel).toBe(300);
 });
 
+test('출항 직후 새로 고침 — 저장본의 배 위치 = 출항점(입항 반경 밖), 재입항 프롬프트 없음(F2)', async ({ page }) => {
+  await newGame(page);
+  await leave(page);
+  const exit = (await state(page)).shipPos;
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('ktrade.save.v1')!).shipPos);
+  expect(saved).toEqual(exit);
+  expect(Math.hypot(exit.x - PORT_BY_ID.busan.mapPos.x, exit.y - PORT_BY_ID.busan.mapPos.y)).toBeGreaterThan(0.03);
+  await page.reload();
+  await page.getByRole('button', { name: '이어하기' }).click();
+  await expect(page.locator('.sail-ui .hud')).toBeVisible();
+  const s = await state(page);
+  expect(s.location).toBe('sea');
+  expect(s.shipPos).toEqual(exit);
+  await expect(page.locator('.sail-ui .prompt')).toHaveCount(0);
+});
+
+test('손 조타 짧은 뱃길(부산→일본, 출항점에서 0.04 미만) — 입항 직전 밀린 필수 카드 → 답하면 입항(F1)', async ({ page }) => {
+  await newGame(page);
+  await leave(page);
+  await page.waitForTimeout(500); // 조작 테스트와 같은 이유(출항 직후 같은 프레임 keydown)
+  const exit = (await state(page)).shipPos;
+  const japan = PORT_BY_ID.japan.mapPos;
+  const hold = async (key: string, until: (p: { x: number; y: number }) => boolean) => {
+    await page.keyboard.down(key);
+    await expect.poll(async () => until((await state(page)).shipPos), { timeout: 15_000 }).toBe(true);
+    await page.keyboard.up(key);
+  };
+  await hold('ArrowRight', (p) => p.x >= japan.x);
+  await hold('ArrowUp', (p) => Math.hypot(p.x - japan.x, p.y - japan.y) <= 0.028);
+  const at = await state(page);
+  console.log(JSON.stringify({ exit, at: at.shipPos, fromExit: Math.hypot(at.shipPos.x - exit.x, at.shipPos.y - exit.y) }));
+  expect(Math.hypot(at.shipPos.x - exit.x, at.shipPos.y - exit.y)).toBeLessThan(0.04); // 거리 트리거로는 못 뜬다
+  expect(at.log.filter((e) => e.type === 'event_choice')).toHaveLength(0);
+  await page.locator('.sail-ui .prompt .btn').click();
+  await expect(page.locator('.ev-card')).toBeVisible();
+  expect((await state(page)).portCalls).toBe(0); // 카드가 먼저, 입항은 아직
+  await answerEvent(page);
+  await expect(page.locator('.port-ui .ribbon.name')).toHaveText(PORT_BY_ID.japan.nameKo);
+  const s = await state(page);
+  const types = s.log.map((e) => e.type);
+  expect(types.indexOf('event_choice')).toBeLessThan(types.indexOf('port_call'));
+  expect((s.log.find((e) => e.type === 'event_choice') as { event: string }).event).toBe(s.eventQueue[0]);
+  expect(s.location).toBe('japan');
+});
+
 test('독일 — 부산에서 자동 조타로 한 탱크에 도착(연료 > 0, 예인 0)', async ({ page }) => {
   await newGame(page);
   await leave(page);

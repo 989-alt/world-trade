@@ -69,9 +69,13 @@ export function nextRequiredEvent(state: GameState): GameEvent | null {
   return due ? EVENT_BY_ID[due] : null;
 }
 
-/** 거리 트리거: 출항점(exit)에서 REQUIRED_EVENT_DIST 이상 멀어졌으면 다음 필수 카드. 한 출항에 한 번만 부르는 것은 씬 몫 */
-export function distanceEventFor(state: GameState, exit: { x: number; y: number }): GameEvent | null {
-  return dist(state.shipPos, exit) >= REQUIRED_EVENT_DIST ? nextRequiredEvent(state) : null;
+/**
+ * 지금 띄울 밀린 필수 카드(없으면 null). 항해 중엔 출항점(exit)에서 REQUIRED_EVENT_DIST 이상 멀어졌을 때,
+ * 입항·예인 직전(arriving)엔 거리와 상관없이 — 0.04 도 안 되는 짧은 뱃길(부산→일본 등)·예인에서도 카드를 놓치지 않는다.
+ * 뽑힌 카드는 더 이상 밀린 카드가 아니라 두 번 뜨지 않는다.
+ */
+export function requiredEventNow(state: GameState, exit: { x: number; y: number }, arriving: boolean): GameEvent | null {
+  return arriving || dist(state.shipPos, exit) >= REQUIRED_EVENT_DIST ? nextRequiredEvent(state) : null;
 }
 
 /** 해역 진입 시 뜰 이벤트(없으면 null). 선택 1장은 자기 해역에서, 아니면 다음 필수 카드 */

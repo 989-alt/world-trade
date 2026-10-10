@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { EVENTS } from '../content/events';
 import { PORTS } from '../content/ports';
+import { REQUIRED_EVENT_DIST, newGame, reduce, requiredEventNow } from '../engine/state';
 import { LONGEST_ROUTE, TANK, dist, fuelCostFor } from '../engine/economy';
 import { routeBetween } from './autopilot';
 import type { Mask } from './collision';
@@ -38,14 +40,54 @@ describe('대화창 닫은 뒤 배 위치', () => {
   });
 });
 
-describe('씬 배선(소스 확인 — Phaser 는 node 에서 못 띄운다)', () => {
-  it('R1 항해 씬: 해역 트리거 + 출항점 거리 트리거(출항마다 한 번, 출항 시 다시 무장)', async () => {
-    const src = (await import('./SailingScene.ts?raw')).default;
-    expect(src).toContain('distanceEventFor(r.state, this.legStart)');
-    expect(src).toMatch(/if \(depart\) \{\s*this\.legStart = \{ \.\.\.pos \};\s*this\.legFired = false;/);
-    expect(src).not.toMatch(/Math\.random|Date\.now|new Date/);
+describe('F1·F4 밀린 필수 카드 — 짧은 뱃길·입항 직전(requiredEventNow 동작)', () => {
+  const start = () => reduce(newGame(42, { nickname: 't', seat: '1' }), { type: 'START_MAIN' }).state;
+  it('부산→일본: 실제 출항점에서 일본 반경까지 0.04 미만 — 항해 중엔 안 뜨고, 입항 직전엔 뜬다. 고른 뒤엔 입항', () => {
+    const exit = routeBetween('busan', 'japan')[0]; // 부산 출항점(exitPoint, 마스크 위 첫 바다 점 — collision.test 'autopilot waypoints' 검증)
+    const japan = PORTS.find((p) => p.id === 'japan')!.mapPos;
+    expect(nearestPortWithin(exit)).toBeNull();
+    expect(dist(exit, PORTS.find((p) => p.id === 'busan')!.mapPos)).toBeCloseTo(DOCK_RADIUS * 1.5, 3);
+    // 출항점에서 일본 쪽으로 곧장: 일본 반경 경계에 닿는 점
+    const d = dist(exit, japan);
+    const k = (d - DOCK_RADIUS + 1e-6) / d;
+    const edge = { x: exit.x + (japan.x - exit.x) * k, y: exit.y + (japan.y - exit.y) * k };
+    expect(dist(edge, exit)).toBeLessThan(REQUIRED_EVENT_DIST);
+    expect(nearestPortWithin(edge)?.id).toBe('japan');
+
+    let s = reduce(start(), { type: 'LEAVE_PORT' }).state;
+    s = { ...s, shipPos: exit };
+    s = reduce(s, { type: 'MOVE_SHIP', dx: edge.x - exit.x, dy: edge.y - exit.y }).state;
+    expect(requiredEventNow(s, exit, false)).toBeNull(); // 거리 트리거만으론 놓친다
+    const card = requiredEventNow(s, exit, true);
+    expect(card?.id).toBe(s.eventQueue[0]);
+    s = reduce(s, { type: 'EVENT_CHOICE', eventId: card!.id, choiceId: card!.choices[0].id }).state;
+    expect(requiredEventNow(s, exit, true)).toBeNull(); // 두 번 뜨지 않는다
+    expect(reduce(s, { type: 'ENTER_PORT', port: 'japan' }).reason).toBeUndefined();
   });
-  it('R17 boot 배경색은 tokens.css --color-sea 를 읽는다(hex 하드코딩 없음)', async () => {
+  it('부산↔일본만 왕복해도 6구간에 필수 5장 전부, 결정적', () => {
+    const play = () => {
+      let s = start();
+      for (let leg = 0; leg < 6; leg++) {
+        s = reduce(s, { type: 'LEAVE_PORT' }).state;
+        const card = requiredEventNow(s, s.shipPos, true);
+        if (card) s = reduce(s, { type: 'EVENT_CHOICE', eventId: card.id, choiceId: card.choices[0].id }).state;
+        s = reduce(s, { type: 'ENTER_PORT', port: leg % 2 ? 'busan' : 'japan' }).state;
+      }
+      return s;
+    };
+    const a = play();
+    expect([...a.eventsDrawn].sort()).toEqual(EVENTS.filter((e) => e.required).map((e) => e.id).sort());
+    expect(play()).toEqual(a);
+  });
+  it('예인 직전에도 밀린 필수 카드(연료 0, 출항점 근처)', () => {
+    let s = reduce(start(), { type: 'LEAVE_PORT' }).state;
+    s = { ...s, fuel: 0 };
+    expect(requiredEventNow(s, s.shipPos, true)?.required).toBe(true);
+  });
+});
+
+describe('R17 boot 배경색', () => {
+  it('tokens.css --color-sea 를 읽는다(hex 하드코딩 없음)', async () => {
     const src = (await import('./boot.ts?raw')).default;
     expect(src).toContain("getPropertyValue('--color-sea')");
     expect(src).not.toMatch(/#[0-9a-f]{3,8}\b/i);

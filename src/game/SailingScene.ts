@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { PORTS } from '../content/ports';
 import type { PortId } from '../content/types';
 import { nearestPort } from '../engine/economy';
-import { distanceEventFor, nextEventFor, reduce, type Action } from '../engine/state';
+import { saveGame } from '../engine/save';
+import { nextEventFor, reduce, requiredEventNow, type Action } from '../engine/state';
 import type { GameState, Result } from '../engine/types';
 import { installAutopilot, routeBetween } from './autopilot';
 import { setDialogOpen } from './boot';
@@ -61,9 +62,10 @@ export class SailingScene extends Phaser.Scene {
   private keyboard!: Record<'up' | 'down' | 'left' | 'right' | 'w' | 'a' | 's' | 'd', Phaser.Input.Keyboard.Key>;
   private heading: Heading | null = null;
   private towing = false;
-  /** 이번 출항의 출항점과, 거리 트리거로 필수 카드를 이미 띄웠는지(한 출항에 한 번) */
+  /** 이번 출항의 출항점(필수 카드 거리 트리거 기준) */
   private legStart: Pos = { x: 0, y: 0 };
-  private legFired = false;
+  /** 입항 직전 밀린 필수 카드를 띄웠다 → 카드를 닫으면 입항 */
+  private dockAfterCard = false;
   private autopilot: { port: PortId; path: Pos[]; i: number; resolve: () => void; reject: (e: Error) => void } | null = null;
 
   constructor() {
@@ -87,7 +89,7 @@ export class SailingScene extends Phaser.Scene {
     const s = gameStore.get();
     if (!s) return; // 타이틀 화면 중: 빈 바다
     this.legStart = { ...s.shipPos };
-    this.legFired = false;
+    this.dockAfterCard = false;
 
     this.add.image(0, 0, 'map').setOrigin(0).setDisplaySize(WORLD_W, WORLD_H);
     const src = this.textures.get('mask').getSourceImage() as HTMLImageElement;
@@ -142,6 +144,11 @@ export class SailingScene extends Phaser.Scene {
     const s = gameStore.get();
     // !this.mask: 부팅 때 빈 바다로 뜬 인스턴스(startSailing 의 restart 전)는 움직이지 않는다
     if (!s || !this.mask || this.towing || s.stage !== 'main' || s.location !== 'sea' || document.body.classList.contains('ui-open')) return;
+    if (this.dockAfterCard) {
+      // 입항 직전 카드를 닫았다 → 씬이 다시 돈 첫 프레임에 입항(resume 은 다음 프레임에 적용돼 닫는 순간엔 못 한다)
+      this.dockAfterCard = false;
+      return this.dock();
+    }
     if (s.fuel <= 0) return this.tow();
 
     let dir: Pos;
@@ -196,13 +203,8 @@ export class SailingScene extends Phaser.Scene {
       const event = nextEventFor(r.state, zone);
       if (event) return this.openDialog('ktrade:event', { event });
     }
-    if (!this.legFired) {
-      const event = distanceEventFor(r.state, this.legStart);
-      if (event) {
-        this.legFired = true;
-        return this.openDialog('ktrade:event', { event });
-      }
-    }
+    const due = requiredEventNow(r.state, this.legStart, false);
+    if (due) return this.openDialog('ktrade:event', { event: due });
     if (r.state.fuel <= 0) this.tow();
   }
 
@@ -210,7 +212,13 @@ export class SailingScene extends Phaser.Scene {
     const s = gameStore.get();
     if (!s || this.towing || !this.scene.isActive()) return;
     const port = nearestPortWithin(s.shipPos);
-    if (!port || gameStore.dispatch({ type: 'ENTER_PORT', port: port.id }).reason) return;
+    if (!port) return;
+    const due = requiredEventNow(s, this.legStart, true);
+    if (due) {
+      this.dockAfterCard = true;
+      return this.openDialog('ktrade:event', { event: due });
+    }
+    if (gameStore.dispatch({ type: 'ENTER_PORT', port: port.id }).reason) return;
     this.syncShip();
     this.openDialog('ktrade:docked', { port: port.id });
   }
@@ -222,7 +230,7 @@ export class SailingScene extends Phaser.Scene {
     if (pos !== s.shipPos) gameStore.set({ ...s, shipPos: pos });
     if (depart) {
       this.legStart = { ...pos };
-      this.legFired = false;
+      saveGame(gameStore.get()!); // 출항점 이동은 로그가 없어 자동 저장이 못 본다 — 새로 고침해도 반경 밖에서 이어지게
     }
     this.syncShip();
     setDialogOpen(false);
@@ -231,6 +239,8 @@ export class SailingScene extends Phaser.Scene {
 
   /** 연료 0: 입력 무시 → 엔진 TOW(가장 가까운 항구·급유만 입항) → 1.5초 예인 → 그 항구 화면 */
   private tow() {
+    const due = requiredEventNow(gameStore.get()!, this.legStart, true);
+    if (due) return this.openDialog('ktrade:event', { event: due }); // 카드를 닫으면 update 가 다시 tow
     const r = gameStore.dispatch({ type: 'TOW' });
     if (r.reason) return;
     this.towing = true;

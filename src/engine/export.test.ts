@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { START_CASH } from '../content/ports';
-import { MAX_LEG_FUEL, MAX_REFUEL, PORT_CALLS, TANK } from './economy';
+import { MAX_LEG_FUEL, MAX_REFUEL, PORT_CALLS, TANK, withLog } from './economy';
+import { resultStats } from '../ui/EpilogueScreen';
 import { buildResult, downloadFiles, fileNames, safeName, toCsv } from './export';
 import { newGame, reduce } from './state';
 
@@ -46,6 +47,19 @@ describe('buildResult', () => {
       log: s.log,
     });
     expect(Object.keys(r).sort()).toEqual(['finishedAt', 'grade', 'invariants', 'ledger', 'log', 'nickname', 'seat', 'seed', 'summary', 'version'].sort());
+  });
+  it('F3 summary.judgeDir 도 1차 시도만(결과 화면과 같은 잣대)', () => {
+    let s = reduce(newGame(7, { nickname: '바다', seat: '7' }), { type: 'START_MAIN' }).state;
+    s = withLog(s,
+      { type: 'judge_dir', port: 'saudi', good: 'crude-oil', answer: 'export', correct: false, attempt: 1 },
+      { type: 'judge_dir', port: 'saudi', good: 'crude-oil', answer: 'import', correct: true, attempt: 2 },
+      { type: 'judge_dir', port: 'japan', good: 'robot', answer: 'import', correct: true, attempt: 1 },
+      { type: 'judge_cause', port: 'japan', good: 'robot', answer: 'tech', correct: true, attempt: 1 });
+    const r = buildResult(s);
+    expect(r.summary.judgeDir).toEqual({ correct: 1, total: 2 });
+    expect(r.summary.judgeCause).toEqual({ firstTryCorrect: 1, total: 1 });
+    expect(r.summary.judgeDir.correct + r.summary.judgeCause.firstTryCorrect).toBe(resultStats(s).judge.correct);
+    expect(r.summary.judgeDir.total + r.summary.judgeCause.total).toBe(resultStats(s).judge.total);
   });
   it('downloadFiles is a no-op without a DOM', () => {
     const s = newGame(1, { nickname: 'a', seat: '1' });

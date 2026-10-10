@@ -3,7 +3,7 @@ import { EVENTS } from '../content/events';
 import { GOOD_IDS } from '../content/types';
 import { PORT_BY_ID, PORTS } from '../content/ports';
 import { priceAt } from './economy';
-import { REQUIRED_EVENT_DIST, distanceEventFor, drawEvents, newGame, nextEventFor, reduce, type Action } from './state';
+import { REQUIRED_EVENT_DIST, requiredEventNow, drawEvents, newGame, nextEventFor, reduce, type Action } from './state';
 import type { GameState } from './types';
 
 const last = <T>(a: T[], n = 1) => a[a.length - n];
@@ -94,11 +94,11 @@ describe('이벤트 드로우', () => {
       s = reduce(s, { type: 'LEAVE_PORT' }).state;
       if (s.stage !== 'main') break;
       const exit = { ...s.shipPos };
-      expect(distanceEventFor(s, exit)).toBeNull(); // 출항점 그대로
+      expect(requiredEventNow(s, exit, false)).toBeNull(); // 출항점 그대로
       s = reduce(s, { type: 'MOVE_SHIP', dx: REQUIRED_EVENT_DIST * 0.9, dy: 0 }).state;
-      expect(distanceEventFor(s, exit)).toBeNull(); // 0.036 — 아직
+      expect(requiredEventNow(s, exit, false)).toBeNull(); // 0.036 — 아직
       s = reduce(s, { type: 'MOVE_SHIP', dx: REQUIRED_EVENT_DIST * 0.2, dy: 0 }).state;
-      const ev = distanceEventFor(s, exit);
+      const ev = requiredEventNow(s, exit, false);
       if (leg < 5) {
         expect(ev?.id).toBe(s.eventQueue[leg]); // n번째 출항 = n번째 필수 카드
         expect(ev?.required).toBe(true);
@@ -106,7 +106,7 @@ describe('이벤트 드로우', () => {
       } else {
         expect(ev).toBeNull(); // 선택 카드는 거리로 뜨지 않는다(해역 트리거만)
       }
-      expect(distanceEventFor(s, exit)).toBeNull(); // 한 출항에 한 장
+      expect(requiredEventNow(s, exit, true)).toBeNull(); // 고른 카드는 다시 안 뜨고, 다음 카드는 다음 출항부터
       s = reduce(s, { type: 'ENTER_PORT', port: leg % 2 ? 'busan' : 'japan' }).state;
     }
     const chosen = s.log.flatMap((e) => (e.type === 'event_choice' ? [e.event] : []));
