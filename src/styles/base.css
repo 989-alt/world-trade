@@ -1,0 +1,60 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-foreground);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+}
+
+body { min-width: 1024px; min-height: 640px; }
+
+/* 1280x720 stage, letterbox-scaled to the viewport (fallback 1 before JS-free CSS calc). */
+:root {
+  --stage-scale: min(calc(100vw / 1280), calc(100vh / 720));
+}
+
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1280px;
+  height: 720px;
+  transform: translate(-50%, -50%) scale(var(--stage-scale));
+  transform-origin: center center;
+  background: var(--color-sea);
+  overflow: hidden;
+}
+
+#game, #ui { position: absolute; inset: 0; }
+#game canvas { display: block; }
+
+/* DOM overlay: transparent to input unless a dialog is open or a child opts in. */
+#ui { pointer-events: none; }
+#ui > * { pointer-events: auto; }
+body.ui-open #ui { pointer-events: auto; }
+body.ui-open #game { pointer-events: none; }
+
+button, [role="button"] { min-width: 44px; min-height: 44px; }
+
+#rotate-notice {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 24px;
+  text-align: center;
+}
+
+@media (orientation: portrait) {
+  #rotate-notice { display: flex; }
+  .stage { display: none; }
+}

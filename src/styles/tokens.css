@@ -1,0 +1,58 @@
+:root {
+  --color-background: #EAF6FF;
+  --color-foreground: #1B2A41;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1B2A41;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1B2A41;
+  --color-primary: #2F6FED;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #DCE9FA;
+  --color-secondary-foreground: #1B2A41;
+  --color-muted: #F1F6FC;
+  --color-muted-foreground: #52637A;
+  --color-accent: #F2994A;
+  --color-accent-foreground: #1B2A41;
+  --color-destructive: #E5484D;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: #1B2A41;
+  --color-input: #FFFFFF;
+  --color-ring: #F2994A;
+  --color-sea: #3FA7E6;
+  --color-land: #F7E7B4;
+  --color-route: #1B2A41;
+  --color-hud: #FFFFFF;
+  --color-hud-foreground: #1B2A41;
+  --color-import: #2F6FED;
+  --color-import-foreground: #FFFFFF;
+  --color-export: #F2994A;
+  --color-export-foreground: #1B2A41;
+  --color-correct: #2BB673;
+  --color-correct-foreground: #1B2A41;
+  --color-wrong: #E5484D;
+  --color-wrong-foreground: #FFFFFF;
+  --color-hidden: #DCE9FA;
+  --color-hidden-foreground: #52637A;
+  --color-axis-nature: #4CAF50;
+  --color-axis-resource: #C98A2B;
+  --color-axis-capital: #8E6CEF;
+  --color-axis-tech: #2F6FED;
+  --color-axis-geo: #19A7A3;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+
+  --font-display: 'Jua', sans-serif;
+  --font-body: 'Noto Sans KR', sans-serif;
+  --font-numeric: 'Noto Sans KR', sans-serif;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  --shadow-card: 0 6px 0 #C9DDF2, 0 12px 24px rgba(27,42,65,.12);
+  --shadow-press: 0 2px 0 #C9DDF2;
+}
