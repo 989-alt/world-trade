@@ -23,14 +23,14 @@ export const FEE_LABEL = '통관 수수료 10%';
 
 const feeRate = (s?: JudgmentSession) => (s ? judgmentResult(s).feeRate : 0);
 
-/** 스테퍼 상한: 사기 = 적재 여유(통관 지연 반영)·현금, 팔기 = 배 수량, 싣기 = 창고 수량·적재 여유 */
-export function maxQty(state: GameState, row: Row, session?: JudgmentSession): number {
+/** 스테퍼 상한: 사기 = 적재 여유(통관 지연 반영 — delay 는 그 입항 전체)·현금, 팔기 = 배 수량, 싣기 = 창고 수량·적재 여유 */
+export function maxQty(state: GameState, row: Row, session?: JudgmentSession, delay = false): number {
   const room = (cap: number) => Math.max(0, cap - qtyOf(state.cargo));
   if (row.mode === 'sell') return qtyOf(state.cargo, row.good);
   if (row.mode === 'load') return Math.min(qtyOf(state.depot, row.good), room(CARGO_CAP));
   if (row.mode === 'blocked') return 0;
   const fee = feeRate(session);
-  let n = room(Math.min(CARGO_CAP, session ? tradeSlots(CARGO_CAP, session) : CARGO_CAP));
+  let n = room(tradeSlots(CARGO_CAP, delay));
   while (n > 0 && row.price * n + Math.round(row.price * n * fee) > state.cash) n--;
   return n;
 }
@@ -44,8 +44,8 @@ export function tradeSummary(qty: number, price: number, session?: JudgmentSessi
 }
 
 /** 엔진 fee 는 비율(0 / 0.1), slots 는 통관 지연 반영 적재 칸 */
-export function tradeAction(row: Row, qty: number, session?: JudgmentSession): Action {
-  if (row.mode === 'buy') return { type: 'BUY', good: row.good, qty, ...(session ? { fee: feeRate(session), slots: tradeSlots(CARGO_CAP, session) } : {}) };
+export function tradeAction(row: Row, qty: number, session?: JudgmentSession, delay = false): Action {
+  if (row.mode === 'buy') return { type: 'BUY', good: row.good, qty, ...(session ? { fee: feeRate(session), slots: tradeSlots(CARGO_CAP, delay) } : {}) };
   if (row.mode === 'sell') return { type: 'SELL', good: row.good, qty, ...(session ? { fee: feeRate(session) } : {}) };
   return { type: 'LOAD', good: row.good, qty };
 }
@@ -68,10 +68,10 @@ export function createGuard() {
   };
 }
 
-type Props = { store: GameStore; state: GameState; row: Row; session?: JudgmentSession };
+type Props = { store: GameStore; state: GameState; row: Row; session?: JudgmentSession; delay?: boolean };
 
-export function TradePanel({ store, state, row, session }: Props) {
-  const max = maxQty(state, row, session);
+export function TradePanel({ store, state, row, session, delay = false }: Props) {
+  const max = maxQty(state, row, session, delay);
   const [want, setWant] = useState(1);
   const [busy, setBusy] = useState(false);
   const guard = useRef(createGuard()).current;
@@ -81,7 +81,7 @@ export function TradePanel({ store, state, row, session }: Props) {
 
   const go = () => {
     if (qty < 1) return;
-    const r = guard.run(() => store.dispatch(tradeAction(row, qty, session)));
+    const r = guard.run(() => store.dispatch(tradeAction(row, qty, session, delay)));
     if (!r) return;
     setBusy(true);
     setWant(1);

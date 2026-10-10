@@ -4,7 +4,7 @@ import { PORT_BY_ID, START_CASH, START_DEPOT, START_FUEL } from '../content/port
 import { RECIPES } from '../content/recipes';
 import { createRng } from './rng';
 import {
-  EMPLOYMENT_PER_LEVEL, PORT_CALLS, buy, load, moveShip, process, refuel, sell, tow, withFactory, withLog,
+  EMPLOYMENT_PER_LEVEL, PORT_CALLS, buy, dist, load, moveShip, process, refuel, sell, tow, withFactory, withLog,
 } from './economy';
 import type { EventId, GameState, Reason, Result } from './types';
 
@@ -59,18 +59,27 @@ export function newGame(seed: number, profile: GameState['profile']): GameState 
   };
 }
 
-/**
- * 해역 진입 시 뜰 이벤트(없으면 null).
- * 선택 1장은 자기 해역에서. 필수 카드 n번째는 n번째 출항 뒤 첫 해역 진입에(놓친 카드는 다음 해역에서 이어서).
- * 뽑힌 카드는 다시 뜨지 않는다.
- */
+/** 출항점에서 이만큼(지도 비율) 멀어지면 필수 카드를 띄운다 — 해역을 지나지 않는 뱃길(부산↔일본 등)에서도 5장 보장 */
+export const REQUIRED_EVENT_DIST = 0.04;
+
+/** 지금 띄울 필수 카드: n번째 출항까지 n장이 차례로 열린다(놓친 카드는 이어서). 뽑힌 카드는 다시 뜨지 않는다 */
+export function nextRequiredEvent(state: GameState): GameEvent | null {
+  if (state.stage !== 'main' || state.location !== 'sea') return null;
+  const due = state.eventQueue.slice(0, Math.min(state.departures, REQUIRED.length)).find((id) => !state.eventsDrawn.includes(id));
+  return due ? EVENT_BY_ID[due] : null;
+}
+
+/** 거리 트리거: 출항점(exit)에서 REQUIRED_EVENT_DIST 이상 멀어졌으면 다음 필수 카드. 한 출항에 한 번만 부르는 것은 씬 몫 */
+export function distanceEventFor(state: GameState, exit: { x: number; y: number }): GameEvent | null {
+  return dist(state.shipPos, exit) >= REQUIRED_EVENT_DIST ? nextRequiredEvent(state) : null;
+}
+
+/** 해역 진입 시 뜰 이벤트(없으면 null). 선택 1장은 자기 해역에서, 아니면 다음 필수 카드 */
 export function nextEventFor(state: GameState, zone: string): GameEvent | null {
   if (state.stage !== 'main' || state.location !== 'sea') return null;
-  const open = (id: EventId | undefined) => id !== undefined && !state.eventsDrawn.includes(id);
   const optional = state.eventQueue[REQUIRED.length];
-  if (open(optional) && EVENT_BY_ID[optional].zone === zone) return EVENT_BY_ID[optional];
-  const due = state.eventQueue.slice(0, Math.min(state.departures, REQUIRED.length)).find(open);
-  return due ? EVENT_BY_ID[due] : null;
+  if (optional !== undefined && !state.eventsDrawn.includes(optional) && EVENT_BY_ID[optional].zone === zone) return EVENT_BY_ID[optional];
+  return nextRequiredEvent(state);
 }
 
 const reject = (state: GameState, reason: Reason): Result => ({ state, reason });

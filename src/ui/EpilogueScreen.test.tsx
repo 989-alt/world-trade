@@ -4,7 +4,7 @@ import { downloadFiles } from '../engine/export';
 import { EPILOGUE_COMPARE_SCREEN, checkResult } from '../engine/result';
 import { reduce } from '../engine/state';
 import type { GameState, LogEvent, LogInput } from '../engine/types';
-import { EpilogueScreen, compareBars, doExport, resultStats, sentenceGate } from './EpilogueScreen';
+import { EpilogueScreen, compareBars, doExport, firstPhase, resultStats, sentenceGate } from './EpilogueScreen';
 import { checkManualRow } from './LedgerScreen';
 import { scoreMindmap } from './MindmapForm';
 import { CSV_COLUMNS, TEACHER_PRIVACY } from './TeacherGuide';
@@ -59,9 +59,23 @@ describe('result screen', () => {
       { type: 'judge_cause', port: 'saudi', good: 'crude-oil', answer: 'resource', correct: true, attempt: 1 });
     const r = resultStats(s);
     expect(r.coins).toBe(s.cash);
-    expect(r.judge).toEqual({ correct: 2, total: 3 });
+    expect(r.judge).toEqual({ correct: 2, total: 2 }); // R15 방향·까닭 모두 1차 시도만
     expect(r.rows).toBe(0);
     expect(r.grade.grade).toBe('C');
+  });
+  it('R15 방향 2차 시도·까닭 2차 시도는 분자·분모 모두에서 빠진다', () => {
+    const s = withLog(fresh(),
+      { type: 'judge_dir', port: 'saudi', good: 'crude-oil', answer: 'export', correct: false, attempt: 1 },
+      { type: 'judge_dir', port: 'saudi', good: 'crude-oil', answer: 'import', correct: true, attempt: 2 },
+      { type: 'judge_cause', port: 'saudi', good: 'crude-oil', answer: 'tech', correct: false, attempt: 1 },
+      { type: 'judge_cause', port: 'saudi', good: 'crude-oil', answer: 'resource', correct: true, attempt: 2 },
+      { type: 'judge_dir', port: 'japan', good: 'robot', answer: 'import', correct: true, attempt: 1 },
+      { type: 'judge_cause', port: 'japan', good: 'robot', answer: 'tech', correct: true, attempt: 1 });
+    expect(resultStats(s).judge).toEqual({ correct: 2, total: 4 });
+  });
+  it('R5 완주(done) 저장본을 이어하면 결과 화면부터, 에필로그 중이면 일지부터', () => {
+    expect(firstPhase({ stage: 'done' })).toBe(3);
+    expect(firstPhase({ stage: 'epilogue' })).toBe(0);
   });
   it('doExport hands buildResult to downloader; downloadFiles triggers 2 object URLs', () => {
     const dl = vi.fn(() => true);

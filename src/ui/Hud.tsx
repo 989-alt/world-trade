@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { GOOD_BY_ID } from '../content/goods';
 import type { GameEvent } from '../content/types';
-import { CARGO_CAP, PORT_CALLS, TANK } from '../engine/economy';
+import { CARGO_CAP, PORT_CALLS, TANK, refuelFare } from '../engine/economy';
 import type { GameState } from '../engine/types';
 import { requestDock, type GameStore } from '../game/SailingScene';
 import { nearestPortWithin } from '../game/ports-layout';
@@ -25,6 +25,14 @@ export function MuteButton() {
   );
 }
 
+/** 입항 프롬프트: 항구 반경 안이면 이름과 급유 요금(부산 0 은 생략 → fare null) */
+export function dockPrompt(s: GameState): { name: string; fare: number | null } | null {
+  const port = s.stage === 'main' && s.location === 'sea' ? nearestPortWithin(s.shipPos) : null;
+  if (!port) return null;
+  const fare = refuelFare(s, port);
+  return { name: port.nameKo, fare: fare > 0 ? fare : null };
+}
+
 export function Hud({ store }: { store: GameStore }) {
   const [s, setS] = useState<GameState | null>(store.get());
   const [radio, setRadio] = useState<GameEvent | null>(null);
@@ -37,7 +45,7 @@ export function Hud({ store }: { store: GameStore }) {
   if (!s) return null;
 
   const slots = s.cargo.flatMap((i) => Array<string>(i.qty).fill(GOOD_BY_ID[i.good].nameKo));
-  const port = s.stage === 'main' && s.location === 'sea' ? nearestPortWithin(s.shipPos) : null;
+  const port = dockPrompt(s);
 
   return (
     <>
@@ -63,7 +71,10 @@ export function Hud({ store }: { store: GameStore }) {
       )}
       {port && (
         <div class="panel prompt">
-          <div class="name"><img src={icon('anchor')} alt="" />{port.nameKo}</div>
+          <div class="name">
+            <img src={icon('anchor')} alt="" />{port.name}
+            {port.fare !== null && <><img src={icon('fuel')} alt="급유 요금" />{port.fare}</>}
+          </div>
           <button class="btn orange lg" onClick={requestDock}><span>입항</span></button>
         </div>
       )}

@@ -149,6 +149,8 @@ export function sell(state: GameState, good: GoodId, qty: number, fee = 0): Resu
   if (typeof port === 'string') return reject(state, port);
   if (badQty(qty)) return reject(state, 'bad_qty');
   if (qtyOf(state.cargo, good) < qty) return reject(state, 'not_in_cargo');
+  // 사 주는 것은 그 항구 결핍 목록뿐(결핍 축이 판정 정답). 싱가포르만 전부 1.0 에 사 준다
+  if (port.id !== 'singapore' && !port.shortages.some((s) => s.good === good)) return reject(state, 'not_sold_here');
   const price = priceAt(port, good, state.flags.priceFactor);
   const { rest, taken } = takeItem(state.cargo, good, qty);
   const total = price * qty;
@@ -158,7 +160,8 @@ export function sell(state: GameState, good: GoodId, qty: number, fee = 0): Resu
     const origin = x.origin ?? 'busan';
     const share = Math.round(feeAmt * (x.qty / qty));
     if (port.id === 'busan') return { type: 'trade', from: origin, to: 'busan', good, qty: x.qty, price, dir: 'import', ...(share ? { fee: share } : {}) };
-    const dir = origin !== 'busan' && origin !== port.id ? 'transit' : 'export';
+    // 한국산만 수출. 외국산은 다른 항구든 산 항구든 되팔기 = 중계(수출액 미반영)
+    const dir = origin === 'busan' ? 'export' : 'transit';
     if (dir === 'export') exported += price * x.qty;
     return { type: 'trade', from: origin, to: port.id, good, qty: x.qty, price, dir, ...(share ? { fee: share } : {}) };
   });
@@ -211,13 +214,14 @@ export function process(state: GameState, recipe: Recipe): Result {
 }
 
 /* ── 연료 ── */
-/** 항구에서 급유: 탱크를 가득 채우고 fareTier 정액을 낸다 */
+/** 항구에서 급유: 탱크를 가득 채우고 fareTier 정액을 낸다. 예인 입항은 min(요금, 현금) — 현금 0 이어도 출항 가능 */
 export function refuel(state: GameState): Result {
   if (state.stage !== 'main') return reject(state, 'wrong_stage');
   if (state.location === 'sea') return reject(state, 'not_in_port');
   if (state.fuel >= TANK) return reject(state, 'tank_full');
   const port = PORT_BY_ID[state.location];
-  const cost = refuelFare(state, port);
+  const fare = refuelFare(state, port);
+  const cost = state.flags.towedCall ? Math.min(fare, state.cash) : fare;
   if (state.cash < cost) return reject(state, 'no_cash');
   return {
     state: withLog({ ...state, fuel: TANK, cash: state.cash - cost }, { type: 'refuel', port: port.id, fuel: TANK - state.fuel, cost }),

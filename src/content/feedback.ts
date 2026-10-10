@@ -28,6 +28,10 @@ export const whySells = (portName: string, goodName: string) =>
 export const whyBuys = (portName: string, goodName: string) =>
   `${josa(portName, '이', '가')} ${josa(goodName, '을', '를')} 사 오는 까닭은?`;
 
+/** 싱가포르 까닭 판정(두 방향 공통): 정답 = 지리적 위치 */
+export const whyRelays = (portName: string, goodName: string) =>
+  `${josa(portName, '이', '가')} ${josa(goodName, '을', '를')} 사서 다시 파는 까닭은?`;
+
 export const causeOption = (a: Axis) => AXIS_LABEL[a];
 /** 수출 쪽 선택지: "기술이 부족해서" */
 export const shortageOption = (a: Axis) => `${josa(AXIS_LABEL[a], '이', '가')} 부족해서`;

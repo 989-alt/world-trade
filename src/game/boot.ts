@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { scenes } from './index';
 
-const SEA = '#3FA7E6'; // --color-sea (tokens.css)
 
 export function setDialogOpen(open: boolean): void {
   document.body.classList.toggle('ui-open', open);
@@ -18,7 +17,7 @@ export function boot(): Phaser.Game {
     parent: 'game',
     width: 1280,
     height: 720,
-    backgroundColor: SEA,
+    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-sea').trim(), // tokens.css
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: scenes,
     // CSP connect-src 'none' 이라 XHR 로더가 막힌다 → 모든 씬이 <img> 로 읽는다

@@ -10,12 +10,25 @@ export const PROLOGUE_FLOW = ['byeokran', 'minisim', 'busan'] as const;
 export type PrologueStage = (typeof PROLOGUE_FLOW)[number];
 
 const STEP = Object.fromEntries(PROLOGUE_STEPS.map((s) => [s.id, s]));
+type Deal = 'buy-silk' | 'sell-ginseng';
+
+/** 거래를 고른 뒤 용어 카드: 고른 쪽(수입/수출) 먼저, 나머지 하나, 무역. 고르기 전엔 없음 */
+export function termCards(deal: Deal | null) {
+  if (!deal) return [];
+  const other: Deal = deal === 'buy-silk' ? 'sell-ginseng' : 'buy-silk';
+  const kind = (d: Deal) => (d === 'buy-silk' ? 'import' : 'export');
+  return [
+    { ...STEP[deal].term!, kind: kind(deal) },
+    { ...STEP[other].term!, kind: kind(other) },
+    { ...STEP.trade.term!, kind: '' },
+  ];
+}
 
 type Props = { dispatch: (a: Action) => void; onLog: (e: LogInput) => void; onDone: () => void };
 
 export function PrologueScreen({ dispatch, onLog, onDone }: Props) {
   const [i, setI] = useState(0);
-  const [deal, setDeal] = useState<'buy-silk' | 'sell-ginseng' | null>(null);
+  const [deal, setDeal] = useState<Deal | null>(null);
   const [sim, setSim] = useState<SimChoice | null>(null);
   const stage = PROLOGUE_FLOW[i];
   useEffect(() => { onLog({ type: 'screen', name: `prologue-${stage}` }); }, [stage]);
@@ -23,7 +36,6 @@ export function PrologueScreen({ dispatch, onLog, onDone }: Props) {
   const start = () => { dispatch({ type: 'START_MAIN' }); onDone(); };
 
   if (stage === 'byeokran') {
-    const term = deal ? STEP[deal].term! : null;
     return (
       <div class="pg-root">
         <img class="pg-art" src="assets/img/scene-byeokran.png" alt="" />
@@ -31,9 +43,8 @@ export function PrologueScreen({ dispatch, onLog, onDone }: Props) {
           <div class="pg-face"><img src="assets/img/npc-manager-alpha.png" alt="" /></div>
           <div class="pg-body">
             <p class="pg-text">{deal ? STEP[deal].textKo : STEP.intro.textKo}</p>
-            {term && <div class="pg-terms">
-              <span class={`pg-term ${deal === 'buy-silk' ? 'import' : 'export'}`}><b>{term.wordKo}</b>{term.defKo}</span>
-              <span class="pg-term"><b>{STEP.trade.term!.wordKo}</b>{STEP.trade.term!.defKo}</span>
+            {deal && <div class="pg-terms">
+              {termCards(deal).map((t) => <span class={`pg-term ${t.kind}`}><b>{t.wordKo}</b>{t.defKo}</span>)}
             </div>}
             <div class="pg-acts">
               {!deal && <>

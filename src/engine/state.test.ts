@@ -3,7 +3,7 @@ import { EVENTS } from '../content/events';
 import { GOOD_IDS } from '../content/types';
 import { PORT_BY_ID, PORTS } from '../content/ports';
 import { priceAt } from './economy';
-import { drawEvents, newGame, nextEventFor, reduce, type Action } from './state';
+import { REQUIRED_EVENT_DIST, distanceEventFor, drawEvents, newGame, nextEventFor, reduce, type Action } from './state';
 import type { GameState } from './types';
 
 const last = <T>(a: T[], n = 1) => a[a.length - n];
@@ -29,11 +29,11 @@ function script(seed: number) {
   const { state, reasons } = run(null, [
     { type: 'NEW_GAME', seed, profile: { nickname: '바다', seat: '7' } },
     { type: 'START_MAIN' },
-    { type: 'LOAD', good: 'semiconductor', qty: 2 },
+    { type: 'BUY', good: 'phone', qty: 2 },
     { type: 'LEAVE_PORT' },
     { type: 'MOVE_SHIP', dx: -0.22, dy: 0.13 },
     { type: 'ENTER_PORT', port: 'saudi' },
-    { type: 'SELL', good: 'semiconductor', qty: 2, fee: 0.1 },
+    { type: 'SELL', good: 'phone', qty: 2, fee: 0.1 },
     { type: 'BUY', good: 'crude-oil', qty: 3 },
     { type: 'REFUEL' },
     { type: 'LEAVE_PORT' },
@@ -86,6 +86,31 @@ describe('이벤트 드로우', () => {
     expect(reduce(s, { type: 'EVENT_CHOICE', eventId: first!.id, choiceId: first!.choices[0].id }).reason).toBe('already_drawn');
     s = run(s, [{ type: 'ENTER_PORT', port: 'japan' }, { type: 'LEAVE_PORT' }]).state;
     expect(nextEventFor(s, 'some-zone')?.id).toBe(s.eventQueue[1]);
+  });
+
+  it('R1 해역을 하나도 안 지나도(부산↔일본 왕복) 출항점에서 0.04 멀어지면 필수 카드 — 한 판에 5장 전부', () => {
+    let s = start();
+    for (let leg = 0; leg < 6; leg++) {
+      s = reduce(s, { type: 'LEAVE_PORT' }).state;
+      if (s.stage !== 'main') break;
+      const exit = { ...s.shipPos };
+      expect(distanceEventFor(s, exit)).toBeNull(); // 출항점 그대로
+      s = reduce(s, { type: 'MOVE_SHIP', dx: REQUIRED_EVENT_DIST * 0.9, dy: 0 }).state;
+      expect(distanceEventFor(s, exit)).toBeNull(); // 0.036 — 아직
+      s = reduce(s, { type: 'MOVE_SHIP', dx: REQUIRED_EVENT_DIST * 0.2, dy: 0 }).state;
+      const ev = distanceEventFor(s, exit);
+      if (leg < 5) {
+        expect(ev?.id).toBe(s.eventQueue[leg]); // n번째 출항 = n번째 필수 카드
+        expect(ev?.required).toBe(true);
+        s = reduce(s, { type: 'EVENT_CHOICE', eventId: ev!.id, choiceId: ev!.choices[0].id }).state;
+      } else {
+        expect(ev).toBeNull(); // 선택 카드는 거리로 뜨지 않는다(해역 트리거만)
+      }
+      expect(distanceEventFor(s, exit)).toBeNull(); // 한 출항에 한 장
+      s = reduce(s, { type: 'ENTER_PORT', port: leg % 2 ? 'busan' : 'japan' }).state;
+    }
+    const chosen = s.log.flatMap((e) => (e.type === 'event_choice' ? [e.event] : []));
+    expect([...chosen].sort()).toEqual([...REQUIRED].sort());
   });
 
   it('선택 카드는 자기 해역에서 뜬다', () => {
@@ -172,7 +197,7 @@ describe('턴 진행', () => {
     const ts = state.log.map((e) => e.t);
     expect(ts).toEqual(ts.map((_, i) => i + 1));
     expect(state.log.map((e) => e.type)).toEqual([
-      'stage', 'load', 'depart', 'port_call', 'trade', 'trade', 'refuel', 'depart', 'port_call', 'process', 'autarky',
+      'stage', 'buy_home', 'depart', 'port_call', 'trade', 'trade', 'refuel', 'depart', 'port_call', 'process', 'autarky',
     ]);
   });
 

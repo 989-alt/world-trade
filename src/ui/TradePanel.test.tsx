@@ -2,12 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { PORT_BY_ID } from '../content/ports';
 import { createLog } from '../engine/log';
 import { createRng } from '../engine/rng';
-import { startJudgment, type JudgmentSession } from '../engine/judgment';
+import { startJudgment, turnDelay, type JudgmentSession } from '../engine/judgment';
 import { newGame, reduce, type Action } from '../engine/state';
 import type { GameState } from '../engine/types';
 import { DOCK_RADIUS, exitPoint, nearestPortWithin } from '../game/ports-layout';
 import { recipeView } from './FactoryPanel';
-import { TIP_FULL, TIP_NO_CASH, refuelView } from './RefuelPanel';
+import { TIP_FULL, refuelView } from './RefuelPanel';
 import { clampQty, createGuard, maxQty, tradeAction, tradeSummary, type Row } from './TradePanel';
 import portSrc from './PortPanel.tsx?raw';
 
@@ -56,7 +56,7 @@ describe('수량 스테퍼', () => {
     const s = at('saudi', { cargo: [{ good: 'semiconductor', qty: 1, origin: 'busan' }] });
     const oil = rowOf(s, 'buy:crude-oil');
     expect(maxQty(s, oil, done('saudi', 'crude-oil', 'import'))).toBe(3);
-    expect(maxQty(s, oil, done('saudi', 'crude-oil', 'import', 2))).toBe(2);
+    expect(maxQty(s, oil, done('saudi', 'crude-oil', 'import', 2), true)).toBe(2);
     expect(maxQty({ ...s, cash: 80 }, oil, done('saudi', 'crude-oil', 'import'))).toBe(2);
     // 수수료 10% 포함: 36x2 + 7 = 79 ≤ 80, 36x3 > 80
     expect(maxQty({ ...s, cash: 79 }, oil, done('saudi', 'crude-oil', 'import', 1))).toBe(2);
@@ -70,10 +70,23 @@ describe('수량 스테퍼', () => {
   });
 });
 
+describe('R11 통관 지연은 그 턴 전체', () => {
+  it('한 판정이 지연이면 다른 상품(1차 정답) 사기도 칸 4→3', () => {
+    const s = at('saudi');
+    const late = done('saudi', 'natural-gas', 'import', 2); // 다른 상품 판정에서 2차 오답
+    const clean = done('saudi', 'crude-oil', 'import');
+    const delay = turnDelay([late, clean]);
+    expect(delay).toBe(true);
+    expect(maxQty(s, rowOf(s, 'buy:crude-oil'), clean, delay)).toBe(3);
+    expect(tradeAction(rowOf(s, 'buy:crude-oil'), 1, clean, delay)).toMatchObject({ slots: 3, fee: 0 });
+    expect(maxQty(s, rowOf(s, 'buy:crude-oil'), clean, turnDelay([clean]))).toBe(4);
+  });
+});
+
 describe('거래 액션·요약', () => {
   it('판정 결과의 수수료 비율·적재 칸이 BUY 에 실린다', () => {
     const s = at('saudi');
-    const a = tradeAction(rowOf(s, 'buy:crude-oil'), 2, done('saudi', 'crude-oil', 'import', 2));
+    const a = tradeAction(rowOf(s, 'buy:crude-oil'), 2, done('saudi', 'crude-oil', 'import', 2), true);
     expect(a).toEqual({ type: 'BUY', good: 'crude-oil', qty: 2, fee: 0.1, slots: 3 });
     const r = store(s).dispatch(a);
     expect(r.reason).toBeUndefined();
@@ -154,10 +167,15 @@ describe('급유', () => {
   it('탱크가 차 있으면 잠금', () => {
     expect(refuelView(at('saudi'))).toEqual({ fare: 100, disabled: true, tip: TIP_FULL });
   });
-  it('코인이 요금보다 적으면 잠금 + 예인 안내', () => {
-    expect(refuelView(at('saudi', { fuel: 10, cash: 99 }))).toEqual({ fare: 100, disabled: true, tip: TIP_NO_CASH });
-    expect(TIP_NO_CASH).toContain('예인선');
+  it('코인이 요금보다 적으면 잠금(긴 안내문 없음)', () => {
+    expect(refuelView(at('saudi', { fuel: 10, cash: 99 }))).toEqual({ fare: 100, disabled: true, tip: null });
     expect(refuelView(at('saudi', { fuel: 10, cash: 100 })).disabled).toBe(false);
+  });
+  it('R4 예인 입항: 요금 = min(요금, 현금), 현금 0 이어도 급유 가능', () => {
+    const towed = (cash: number) => at('chile', { fuel: 0, cash, flags: { ...main().flags, towedCall: true } });
+    expect(refuelView(towed(40))).toEqual({ fare: 40, disabled: false, tip: null });
+    expect(refuelView(towed(0))).toEqual({ fare: 0, disabled: false, tip: null });
+    expect(refuelView(towed(500)).fare).toBe(150);
   });
 });
 

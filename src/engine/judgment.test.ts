@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { AXES, type GoodId, type PortId } from '../content/types';
-import { FEEDBACK, shortageOption, whyBuys, whySells } from '../content/feedback';
+import { AXES, AXIS_LABEL, type GoodId, type PortId } from '../content/types';
+import { FEEDBACK, shortageOption, whyBuys, whyRelays, whySells } from '../content/feedback';
 import { PORT_BY_ID } from '../content/ports';
 import { createLog } from './log';
 import {
   answerCause, answerDir, canMove, customsFee, flagOwnSpecialty, judgmentResult,
-  revealPrices, startJudgment, tradeSlots, type Dir, type Shuffle,
+  revealPrices, startJudgment, tradeSlots, turnDelay, type Dir, type Shuffle,
 } from './judgment';
 
 // 테스트 전용 시드 셔플 (엔진 rng.ts 와 무관)
@@ -107,6 +107,20 @@ describe('cause', () => {
     expect(start('singapore', 'phone', 'export').correctCauses).toEqual(['geo']);
   });
 
+  it('R2 singapore: own relay question both ways, options are plain axis names (not 「…이 부족해서」), answer 지리적 위치', () => {
+    for (const dir of ['import', 'export'] as const) {
+      const s = start('singapore', 'cosmetics', dir);
+      expect(s.questionKey).toBe('why_relays');
+      expect(s.question).toBe('싱가포르가 화장품을 사서 다시 파는 까닭은?');
+      expect(s.question).not.toContain('싸게'); // R12
+      expect(s.options.map((o) => o.label).sort()).toEqual(AXES.map((a) => AXIS_LABEL[a]).sort());
+      expect(s.options.every((o) => !o.label.includes('부족'))).toBe(true);
+      answerDir(s, dir);
+      expect(answerCause(s, 'geo').correct).toBe(true);
+    }
+    expect(whyRelays('싱가포르', '로봇')).toBe('싱가포르가 로봇을 사서 다시 파는 까닭은?');
+  });
+
   it('export of a good with no shortage axis is not invented', () => {
     const r = startJudgment({ port: 'germany', good: 'semiconductor', dir: 'export', shuffle: seeded(1), log: createLog() });
     expect(r).toEqual({ ok: false, reason: 'no_shortage_axis' });
@@ -153,7 +167,7 @@ describe('attempts, fee, delay', () => {
     answerCause(s, 'nature');
     expect(judgmentResult(s)).toEqual({ feeRate: 0, delay: false });
     expect(customsFee(500, s)).toBe(0);
-    expect(tradeSlots(4, s)).toBe(4);
+    expect(tradeSlots(4, s.delay)).toBe(4);
   });
 
   it('2nd try right → fee 0.10, no delay', () => {
@@ -163,7 +177,7 @@ describe('attempts, fee, delay', () => {
     answerCause(s, 'nature');
     expect(judgmentResult(s)).toEqual({ feeRate: 0.1, delay: false });
     expect(customsFee(500, s)).toBe(50);
-    expect(tradeSlots(4, s)).toBe(4);
+    expect(tradeSlots(4, s.delay)).toBe(4);
   });
 
   it('direction needed retry → fee 0.10 even if cause right first', () => {
@@ -181,8 +195,32 @@ describe('attempts, fee, delay', () => {
     answerCause(s, 'geo');
     expect(judgmentResult(s)).toEqual({ feeRate: 0.1, delay: true });
     expect(customsFee(500, s)).toBe(50);
-    expect(tradeSlots(4, s)).toBe(3);
-    expect(tradeSlots(1, s)).toBe(1);
+    expect(tradeSlots(4, s.delay)).toBe(3);
+    expect(tradeSlots(1, s.delay)).toBe(1);
+  });
+});
+
+describe('R11 delay from either judgment, turn-wide', () => {
+  it('direction wrong twice → delay (cause then right first)', () => {
+    const s = start('chile', 'grapes', 'import');
+    answerDir(s, 'export');
+    answerDir(s, 'export');
+    expect(s.delay).toBe(true);
+    answerCause(s, 'nature');
+    expect(judgmentResult(s)).toEqual({ feeRate: 0.1, delay: true });
+  });
+  it('one delayed session delays the whole port call; 1st/2nd right alone does not', () => {
+    const ok = start('chile', 'grapes', 'import');
+    answerDir(ok, 'import');
+    answerCause(ok, 'tech');
+    answerCause(ok, 'nature');
+    const bad = start('chile', 'phone', 'export');
+    answerDir(bad, 'export');
+    answerCause(bad, 'geo');
+    answerCause(bad, 'capital');
+    expect(turnDelay([ok])).toBe(false);
+    expect(turnDelay([ok, bad])).toBe(true);
+    expect(tradeSlots(4, turnDelay([ok, bad]))).toBe(3);
   });
 });
 

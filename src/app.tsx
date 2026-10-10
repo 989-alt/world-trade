@@ -2,8 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { playBgm } from './audio/audio';
 import type { GameEvent } from './content/types';
 import { withLog } from './engine/economy';
-import { AUTOSAVE_POINTS, SAVE_KEY, loadGame, saveGame } from './engine/save';
-import type { GameState, LogEvent, LogInput } from './engine/types';
+import { clearSave, createAutosave, loadGame, saveGame } from './engine/save';
+import type { GameState, LogInput } from './engine/types';
 import { setDialogOpen } from './game/boot';
 import { gameStore, resumeSailing, startSailing } from './game/SailingScene';
 import { EpilogueScreen } from './ui/EpilogueScreen';
@@ -26,21 +26,6 @@ const onLog = (e: LogInput) => {
 };
 const logScreen = (name: string) => onLog({ type: 'screen', name });
 
-/** save.ts AUTOSAVE_POINTS 를 로그로 읽는다. judgment_done = 까닭 판정이 맞았거나 두 번째 시도. 에필로그 진입도 저장(새로 고침하면 에필로그부터) */
-const autosaveAt = (e: LogEvent) =>
-  e.type === 'judge_cause'
-    ? e.correct || e.attempt === 2
-    : (e.type === 'stage' && e.stage === 'epilogue') || (AUTOSAVE_POINTS as readonly string[]).includes(e.type);
-
-/** 완주(stage done) 뒤엔 이어할 판이 없다 */
-const clearSave = () => {
-  try {
-    localStorage.removeItem(SAVE_KEY);
-  } catch {
-    /* 저장소 접근 불가 */
-  }
-};
-
 const SAVE_FAILED = '저장하지 못했습니다';
 const LOAD_FAILED = '저장된 판을 읽지 못했습니다';
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -57,16 +42,12 @@ export function App() {
 
   useEffect(() => gameStore.subscribe(setState), []);
 
-  // 자동 저장: 새로 붙은 로그에 저장 시점이 있으면
+  // 자동 저장: 로그가 붙을 때마다(완주 done 도 저장 — 새로 고침하면 결과 화면)
   useEffect(() => {
-    let seen = 0;
+    const autosave = createAutosave();
     return gameStore.subscribe((s) => {
-      if (!s) return;
-      if (s.log.length < seen) seen = 0; // 새 판
-      const fresh = s.log.slice(seen);
-      seen = s.log.length;
-      if (s.stage === 'done') return clearSave();
-      if (fresh.some(autosaveAt) && !saveGame(s).ok) setToast(SAVE_FAILED);
+      const r = autosave(s);
+      if (r && !r.ok) setToast(SAVE_FAILED);
     });
   }, []);
 
@@ -132,6 +113,12 @@ export function App() {
     gameStore.set(r.state);
     setRoute(routeFor(r.state));
   };
+  // 「처음으로」: 완주 저장은 여기서만 지운다
+  const home = () => {
+    clearSave();
+    gameStore.set(null); // 판을 내려놓아 뒤늦은 로그가 지운 저장을 되살리지 않게
+    setRoute('title');
+  };
   const choose = (choiceId: string) => {
     if (event) gameStore.dispatch({ type: 'EVENT_CHOICE', eventId: event.id, choiceId });
     setEvent(null);
@@ -166,7 +153,7 @@ export function App() {
         </div>
       )}
       {route === 'epilogue' && state && (
-        <EpilogueScreen state={state} dispatch={(a) => gameStore.dispatch(a)} onLog={epilogueLog} onDone={() => setRoute('title')} />
+        <EpilogueScreen state={state} dispatch={(a) => gameStore.dispatch(a)} onLog={epilogueLog} onDone={home} />
       )}
       {toast && <div class="ep-toast" role="status">{toast}</div>}
     </>

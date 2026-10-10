@@ -37,3 +37,17 @@ describe('대화창 닫은 뒤 배 위치', () => {
     expect(dist(out, PORTS.find((p) => p.id === 'vietnam')!.mapPos)).toBeCloseTo(DOCK_RADIUS * 1.5, 9);
   });
 });
+
+describe('씬 배선(소스 확인 — Phaser 는 node 에서 못 띄운다)', () => {
+  it('R1 항해 씬: 해역 트리거 + 출항점 거리 트리거(출항마다 한 번, 출항 시 다시 무장)', async () => {
+    const src = (await import('./SailingScene.ts?raw')).default;
+    expect(src).toContain('distanceEventFor(r.state, this.legStart)');
+    expect(src).toMatch(/if \(depart\) \{\s*this\.legStart = \{ \.\.\.pos \};\s*this\.legFired = false;/);
+    expect(src).not.toMatch(/Math\.random|Date\.now|new Date/);
+  });
+  it('R17 boot 배경색은 tokens.css --color-sea 를 읽는다(hex 하드코딩 없음)', async () => {
+    const src = (await import('./boot.ts?raw')).default;
+    expect(src).toContain("getPropertyValue('--color-sea')");
+    expect(src).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+  });
+});

@@ -1,11 +1,12 @@
+import { PORT_IDS } from '../content/types';
 import type { GameState } from './types';
 
 export const SAVE_KEY = 'ktrade.save.v1';
-/** UI 가 이 시점 직후에 saveGame 을 부른다: 입항(턴 경계)·판정 완료·이벤트 선택 */
-export const AUTOSAVE_POINTS = ['port_call', 'judgment_done', 'event_choice'] as const;
 
-export type KV = { getItem(k: string): string | null; setItem(k: string, v: string): void };
+export type KV = { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem?(k: string): void };
 export type LoadResult = { ok: true; state: GameState } | { ok: false; notice: 'save_corrupted' | 'version_mismatch' | 'none' };
+
+const STAGES = ['prologue', 'main', 'epilogue', 'done'];
 
 function defaultStorage(): KV | null {
   try {
@@ -26,6 +27,29 @@ export function saveGame(state: GameState, storage: KV | null = defaultStorage()
   }
 }
 
+/** 「처음으로」에서만 지운다(완주 결과 화면은 새로 고침해도 결과 화면으로 돌아온다) */
+export function clearSave(storage: KV | null = defaultStorage()): void {
+  try {
+    storage?.removeItem?.(SAVE_KEY);
+  } catch {
+    /* 저장소 접근 불가 */
+  }
+}
+
+/** 자동 저장: 상태에 로그가 하나라도 새로 붙으면 저장(완주 done 포함). 로그가 줄면 새 판. 저장 결과(없으면 null) */
+export function createAutosave(save: (s: GameState) => ReturnType<typeof saveGame> = (s) => saveGame(s)) {
+  let seen = 0;
+  return (s: GameState | null) => {
+    if (!s) return null;
+    if (s.log.length < seen) seen = 0;
+    const fresh = s.log.length > seen;
+    seen = s.log.length;
+    return fresh ? save(s) : null;
+  };
+}
+
+const unit = (v: unknown) => typeof v === 'number' && v >= 0 && v <= 1;
+
 /** ok:false 면 UI 가 새 게임을 시작하고 notice 를 알린다 */
 export function loadGame(storage: KV | null = defaultStorage()): LoadResult {
   let raw: string | null;
@@ -44,7 +68,13 @@ export function loadGame(storage: KV | null = defaultStorage()): LoadResult {
   if (!data || typeof data !== 'object') return { ok: false, notice: 'save_corrupted' };
   const s = data as Partial<GameState>;
   if (s.version !== 1) return { ok: false, notice: 'version_mismatch' };
-  if (!Array.isArray(s.log) || !s.profile || typeof s.cash !== 'number' || !s.flags || !Array.isArray(s.cargo)) {
+  if (
+    !Array.isArray(s.log) || !s.profile || typeof s.cash !== 'number' || !s.flags || !Array.isArray(s.cargo) ||
+    !STAGES.includes(s.stage as string) ||
+    !(s.location === 'sea' || (PORT_IDS as readonly string[]).includes(s.location as string)) ||
+    !s.shipPos || !unit(s.shipPos.x) || !unit(s.shipPos.y) ||
+    !Array.isArray(s.eventQueue)
+  ) {
     return { ok: false, notice: 'save_corrupted' };
   }
   return { ok: true, state: s as GameState };

@@ -1,7 +1,7 @@
 import { AXES, AXIS_LABEL, type Axis, type GoodId, type PortId } from '../content/types';
 import { PORT_BY_ID } from '../content/ports';
 import { GOOD_BY_ID } from '../content/goods';
-import { FEEDBACK, shortageOption, whyBuys, whySells } from '../content/feedback';
+import { FEEDBACK, shortageOption, whyBuys, whyRelays, whySells } from '../content/feedback';
 import type { Log } from './log';
 
 /** 한국 회사 기준: 외국 항구에서 사면 import, 팔면 export (싱가포르 중계도 거래마다 이 둘 중 하나) */
@@ -17,10 +17,10 @@ export type JudgmentSession = {
   causeAttempts: number;
   /** 어느 단계든 2차 시도까지 갔으면 true → 수수료 10% */
   retried: boolean;
-  /** 까닭 2차 오답 → 통관 지연 */
+  /** 방향·까닭 어느 쪽이든 2차 오답 → 통관 지연(그 입항 전체, tradeSlots) */
   delay: boolean;
   correctCauses: Axis[];
-  questionKey: 'why_sells' | 'why_buys';
+  questionKey: 'why_sells' | 'why_buys' | 'why_relays';
   question: string;
   /** 5축, 주입된 seed 셔플 순서 */
   options: { axis: Axis; label: string }[];
@@ -59,6 +59,8 @@ export function startJudgment(args: {
     correctCauses = [s.shortageAxis];
   }
   const goodName = GOOD_BY_ID[good].nameKo;
+  // 싱가포르는 두 방향 모두 중계 질문, 선택지는 축 이름 그대로(「…이 부족해서」 꼴이 아니다)
+  const relay = port === 'singapore';
   return {
     ok: true,
     session: {
@@ -69,11 +71,11 @@ export function startJudgment(args: {
       retried: false,
       delay: false,
       correctCauses,
-      questionKey: dir === 'import' ? 'why_sells' : 'why_buys',
-      question: dir === 'import' ? whySells(p.nameKo, goodName) : whyBuys(p.nameKo, goodName),
+      questionKey: relay ? 'why_relays' : dir === 'import' ? 'why_sells' : 'why_buys',
+      question: relay ? whyRelays(p.nameKo, goodName) : dir === 'import' ? whySells(p.nameKo, goodName) : whyBuys(p.nameKo, goodName),
       options: shuffle(AXES).map((axis) => ({
         axis,
-        label: dir === 'import' ? AXIS_LABEL[axis] : shortageOption(axis),
+        label: relay || dir === 'import' ? AXIS_LABEL[axis] : shortageOption(axis),
       })),
       log,
     },
@@ -92,6 +94,7 @@ export function answerDir(s: JudgmentSession, answer: Dir): AnswerResult<Dir> {
   }
   if (attempt < MAX_ATTEMPTS) return { correct, attempt, feedback: FEEDBACK.M1.textKo };
   s.step = 'cause';
+  s.delay = true;
   return { correct, attempt, feedback: FEEDBACK.M1.textKo, revealed: s.dir };
 }
 
@@ -130,9 +133,9 @@ export function judgmentResult(s: JudgmentSession): { feeRate: 0 | 0.1; delay: b
 export const customsFee = (tradeValue: number, s: JudgmentSession) =>
   Math.round(tradeValue * judgmentResult(s).feeRate);
 
-/** 통관 지연이면 그 입항의 거래 칸 -1, 최소 1 */
-export const tradeSlots = (slots: number, s: JudgmentSession) =>
-  Math.max(1, slots - (judgmentResult(s).delay ? 1 : 0));
+/** 통관 지연은 그 입항(턴) 전체: 그 입항의 판정 중 하나라도 delay 면 거래 칸 -1, 최소 1 */
+export const turnDelay = (sessions: Iterable<JudgmentSession>) => [...sessions].some((s) => s.delay);
+export const tradeSlots = (slots: number, delay: boolean) => Math.max(1, slots - (delay ? 1 : 0));
 
 /** 시세는 판정 완료 뒤에만 */
 export function revealPrices<T>(s: JudgmentSession, prices: () => T): T {

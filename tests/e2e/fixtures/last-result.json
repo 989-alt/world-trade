@@ -3,7 +3,7 @@
   "nickname": "별",
   "seat": "3",
   "seed": 42,
-  "finishedAt": "2026-10-10T06:47:23.352Z",
+  "finishedAt": "2026-10-10T07:26:54.323Z",
   "summary": {
     "cash": 4208,
     "portCalls": 6,
@@ -288,7 +288,7 @@
     {
       "type": "refuel",
       "port": "saudi",
-      "fuel": 93.44358126660066,
+      "fuel": 93.44467097876051,
       "cost": 100,
       "t": 26
     },
@@ -422,13 +422,18 @@
     },
     {
       "type": "screen",
-      "name": "game",
+      "name": "port-singapore",
       "t": 42
     },
     {
       "type": "screen",
-      "name": "port-singapore",
+      "name": "game",
       "t": 43
+    },
+    {
+      "type": "screen",
+      "name": "port-singapore",
+      "t": 44
     },
     {
       "type": "judge_dir",
@@ -437,7 +442,7 @@
       "answer": "export",
       "correct": true,
       "attempt": 1,
-      "t": 44
+      "t": 45
     },
     {
       "type": "judge_cause",
@@ -446,7 +451,7 @@
       "answer": "geo",
       "correct": true,
       "attempt": 1,
-      "t": 45
+      "t": 46
     },
     {
       "type": "trade",
@@ -456,7 +461,7 @@
       "qty": 2,
       "price": 60,
       "dir": "transit",
-      "t": 46
+      "t": 47
     },
     {
       "type": "judge_dir",
@@ -465,7 +470,7 @@
       "answer": "export",
       "correct": true,
       "attempt": 1,
-      "t": 47
+      "t": 48
     },
     {
       "type": "judge_cause",
@@ -474,7 +479,7 @@
       "answer": "geo",
       "correct": true,
       "attempt": 1,
-      "t": 48
+      "t": 49
     },
     {
       "type": "trade",
@@ -484,72 +489,83 @@
       "qty": 2,
       "price": 70,
       "dir": "transit",
-      "t": 49
+      "t": 50
     },
     {
       "type": "depart",
       "port": "singapore",
       "departure": 4,
-      "t": 50
+      "t": 51
     },
     {
       "type": "screen",
       "name": "event-factory-relocation",
-      "t": 51
+      "t": 52
     },
     {
       "type": "event_choice",
       "event": "factory-relocation",
       "choice": "move",
-      "t": 52
+      "t": 53
     },
     {
       "type": "port_call",
       "port": "busan",
       "turn": 4,
-      "t": 53
+      "t": 54
     },
     {
       "type": "screen",
       "name": "port-busan",
-      "t": 54
+      "t": 55
     },
     {
       "type": "refuel",
       "port": "busan",
-      "fuel": 109.62791037532568,
+      "fuel": 109.62853819494381,
       "cost": 0,
-      "t": 55
+      "t": 56
     },
     {
       "type": "load",
       "good": "cosmetics",
       "qty": 2,
-      "t": 56
+      "t": 57
     },
     {
       "type": "buy_home",
       "good": "semiconductor",
       "qty": 2,
       "price": 210,
-      "t": 57
+      "t": 58
     },
     {
       "type": "depart",
       "port": "busan",
       "departure": 5,
-      "t": 58
+      "t": 59
+    },
+    {
+      "type": "screen",
+      "name": "event-fair-trade",
+      "t": 60
+    },
+    {
+      "type": "event_choice",
+      "event": "fair-trade",
+      "choice": "fair",
+      "t": 61
     },
     {
       "type": "port_call",
       "port": "japan",
       "turn": 5,
-      "t": 59
+      "t": 62
     },
     {
       "type": "screen",
       "name": "port-japan",
-      "t": 60
+      "t": 63
     },
     {
       "type": "judge_dir",
@@ -558,7 +574,7 @@
       "answer": "export",
       "correct": true,
       "attempt": 1,
-      "t": 61
+      "t": 64
     },
     {
       "type": "judge_cause",
@@ -567,7 +583,7 @@
       "answer": "resource",
       "correct": true,
       "attempt": 1,
-      "t": 62
+      "t": 65
     },
     {
       "type": "trade",
@@ -577,7 +593,7 @@
       "qty": 2,
       "price": 560,
       "dir": "export",
-      "t": 63
+      "t": 66
     },
     {
       "type": "judge_dir",
@@ -586,7 +602,7 @@
       "answer": "import",
       "correct": true,
       "attempt": 1,
-      "t": 64
+      "t": 67
     },
     {
       "type": "judge_cause",
@@ -595,7 +611,7 @@
       "answer": "tech",
       "correct": true,
       "attempt": 1,
-      "t": 65
+      "t": 68
     },
     {
       "type": "trade",
@@ -605,35 +621,24 @@
       "qty": 2,
       "price": 228,
       "dir": "import",
-      "t": 66
+      "t": 69
     },
     {
       "type": "depart",
       "port": "japan",
       "departure": 6,
-      "t": 67
-    },
-    {
-      "type": "screen",
-      "name": "event-fair-trade",
-      "t": 68
-    },
-    {
-      "type": "event_choice",
-      "event": "fair-trade",
-      "choice": "fair",
-      "t": 69
+      "t": 70
     },
     {
       "type": "port_call",
       "port": "singapore",
       "turn": 6,
-      "t": 70
+      "t": 71
     },
     {
       "type": "screen",
       "name": "port-singapore",
-      "t": 71
+      "t": 72
     },
     {
       "type": "judge_dir",
@@ -642,7 +647,7 @@
       "answer": "export",
       "correct": true,
       "attempt": 1,
-      "t": 72
+      "t": 73
     },
     {
       "type": "judge_cause",
@@ -651,7 +656,7 @@
       "answer": "geo",
       "correct": true,
       "attempt": 1,
-      "t": 73
+      "t": 74
     },
     {
       "type": "trade",
@@ -661,7 +666,7 @@
       "qty": 2,
       "price": 200,
       "dir": "export",
-      "t": 74
+      "t": 75
     },
     {
       "type": "judge_dir",
@@ -670,7 +675,7 @@
       "answer": "export",
       "correct": true,
       "attempt": 1,
-      "t": 75
+      "t": 76
     },
     {
       "type": "judge_cause",
@@ -679,7 +684,7 @@
       "answer": "geo",
       "correct": true,
       "attempt": 1,
-      "t": 76
+      "t": 77
     },
     {
       "type": "trade",
@@ -689,77 +694,77 @@
       "qty": 2,
       "price": 380,
       "dir": "transit",
-      "t": 77
+      "t": 78
     },
     {
       "type": "stage",
       "stage": "epilogue",
-      "t": 78
-    },
-    {
-      "type": "screen",
-      "name": "epilogue-ledger",
       "t": 79
     },
     {
       "type": "screen",
-      "name": "epilogue-compare",
+      "name": "epilogue-ledger",
       "t": 80
+    },
+    {
+      "type": "screen",
+      "name": "epilogue-compare",
+      "t": 81
     },
     {
       "type": "sentence",
       "text": "나라마다 자연환경과 자원, 기술이 달라서 잘 만드는 것이 다르기 때문에 무역을 한다.",
-      "t": 81
+      "t": 82
     },
     {
       "type": "screen",
       "name": "epilogue-mind",
-      "t": 82
+      "t": 83
     },
     {
       "type": "mindmap",
       "slot": "meaning",
       "answer": "무역",
       "correct": true,
-      "t": 83
+      "t": 84
     },
     {
       "type": "mindmap",
       "slot": "import",
       "answer": "수입",
       "correct": true,
-      "t": 84
+      "t": 85
     },
     {
       "type": "mindmap",
       "slot": "export",
       "answer": "수출",
       "correct": true,
-      "t": 85
+      "t": 86
     },
     {
       "type": "mindmap",
       "slot": "cause",
       "answer": "차이",
       "correct": true,
-      "t": 86
+      "t": 87
     },
     {
       "type": "mindmap",
       "slot": "interdependence",
       "answer": "상호의존",
       "correct": true,
-      "t": 87
+      "t": 88
     },
     {
       "type": "screen",
       "name": "epilogue-result",
-      "t": 88
+      "t": 89
     },
     {
       "type": "stage",
       "stage": "done",
-      "t": 89
+      "t": 90
     }
   ]
 }

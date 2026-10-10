@@ -104,12 +104,32 @@ describe('사고팔기', () => {
   });
 
   it('거래 방향 로그: 외국에서 사면 import, 한국 상품을 외국에 팔면 export, 외국 상품을 다른 외국에 팔면 transit', () => {
-    const cargo: Item[] = [{ good: 'semiconductor', qty: 1, origin: 'busan' }, { good: 'crude-oil', qty: 1, origin: 'singapore' }];
+    const cargo: Item[] = [{ good: 'semiconductor', qty: 1, origin: 'busan' }, { good: 'car', qty: 1, origin: 'singapore' }];
     let s = at('la', { cargo });
     s = sell(s, 'semiconductor', 1).state;
     expect(last(s.log)).toMatchObject({ type: 'trade', from: 'busan', to: 'la', dir: 'export' });
-    s = sell(s, 'crude-oil', 1).state;
+    s = sell(s, 'car', 1).state;
     expect(last(s.log)).toMatchObject({ type: 'trade', from: 'singapore', to: 'la', dir: 'transit' });
+  });
+
+  it('R9 결핍 목록 밖 상품은 사 주지 않는다(not_sold_here, state 불변). 싱가포르만 전부', () => {
+    const cargo: Item[] = [{ good: 'rice', qty: 1, origin: 'thai' }, { good: 'phone', qty: 1, origin: 'busan' }];
+    const la = at('la', { cargo });
+    const r = sell(la, 'rice', 1);
+    expect(r.reason).toBe('not_sold_here');
+    expect(r.state).toBe(la);
+    expect(sell(at('germany', { cargo }), 'phone', 1).reason).toBe('not_sold_here'); // 독일은 결핍 목록 없음
+    expect(sell(at('saudi', { cargo }), 'phone', 1).reason).toBeUndefined();
+    expect(sell(at('singapore', { cargo }), 'rice', 1).reason).toBeUndefined();
+  });
+
+  it('R10 산 항구에 되팔기(origin === port) = 중계, 수출액 미반영', () => {
+    const s = sell(at('singapore', { cargo: [{ good: 'robot', qty: 2, origin: 'singapore' }] }), 'robot', 2).state;
+    expect(last(s.log)).toMatchObject({ type: 'trade', from: 'singapore', to: 'singapore', dir: 'transit' });
+    expect(s.flags.exportValue).toBe(0);
+    const k = sell(at('singapore', { cargo: [{ good: 'robot', qty: 2, origin: 'busan' }] }), 'robot', 2).state;
+    expect(last(k.log)).toMatchObject({ dir: 'export' });
+    expect(k.flags.exportValue).toBeGreaterThan(0);
   });
 });
 
@@ -231,5 +251,21 @@ describe('연료', () => {
     const f = refuel(r.state);
     expect(f.reason).toBeUndefined();
     expect(f.state.fuel).toBe(TANK);
+  });
+
+  it('R4 예인 입항 급유 = min(요금, 현금): 현금 0·요금 미만이어도 만탱크로 출항 가능, 다음 입항은 정상 요금', () => {
+    const towed = (cash: number): GameState => {
+      const s = { ...at('busan'), location: 'sea' as const, fuel: 0, cash, shipPos: { ...PORT_BY_ID.chile.mapPos } };
+      return tow(s).state;
+    };
+    for (const [cash, cost] of [[0, 0], [40, 40], [1000, 150]] as const) {
+      const r = refuel(towed(cash));
+      expect(r.reason).toBeUndefined();
+      expect(r.state.fuel).toBe(TANK);
+      expect(r.state.cash).toBe(cash - cost);
+      expect(last(r.state.log)).toMatchObject({ type: 'refuel', port: 'chile', cost });
+      expect(reduce(r.state, { type: 'LEAVE_PORT' }).reason).toBeUndefined();
+    }
+    expect(refuel(at('chile', { fuel: 0, cash: 40 })).reason).toBe('no_cash'); // 예인 아니면 그대로
   });
 });

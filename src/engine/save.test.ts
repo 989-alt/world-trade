@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { newGame, reduce } from './state';
-import { AUTOSAVE_POINTS, loadGame, saveGame, SAVE_KEY, type KV } from './save';
+import { clearSave, createAutosave, loadGame, saveGame, SAVE_KEY, type KV } from './save';
+import { withLog } from './economy';
 
 const mem = (init: Record<string, string> = {}): KV & { data: Record<string, string> } => {
   const data = { ...init };
-  return { data, getItem: (k) => data[k] ?? null, setItem: (k, v) => { data[k] = v; } };
+  return { data, getItem: (k) => data[k] ?? null, setItem: (k, v) => { data[k] = v; }, removeItem: (k) => { delete data[k]; } };
 };
 const game = () => reduce(newGame(42, { nickname: '바다', seat: '7' }), { type: 'START_MAIN' }).state;
 
@@ -43,7 +44,43 @@ describe('save / load', () => {
     expect(reduce(s, { type: 'LEAVE_PORT' }).reason).toBeUndefined(); // 진행은 계속
   });
 
-  it('autosave points for the UI', () => {
-    expect(AUTOSAVE_POINTS).toEqual(['port_call', 'judgment_done', 'event_choice']);
+  it('R6 autosave: every state change that appends a log saves; no new log → no save; new game resets', () => {
+    const kv = mem();
+    const autosave = createAutosave((s) => saveGame(s, kv));
+    let s = game();
+    expect(autosave(s)).toEqual({ ok: true });
+    expect(autosave(s)).toBeNull(); // 로그 그대로(MOVE_SHIP 같은 프레임 변화)
+    s = withLog(s, { type: 'screen', name: 'ledger' });
+    expect(autosave(s)).toEqual({ ok: true });
+    expect(loadGame(kv)).toEqual({ ok: true, state: s });
+    expect(autosave(null)).toBeNull();
+    expect(autosave(newGame(1, { nickname: 'a', seat: '1' }))).toBeNull(); // 새 판(로그 0): 시작 시 app 이 직접 저장
+    expect(autosave(game())).toEqual({ ok: true });
+  });
+
+  it('R5 done is saved (not cleared) and restores as done; clearSave removes it', () => {
+    const kv = mem();
+    const autosave = createAutosave((s) => saveGame(s, kv));
+    let s = game();
+    s = reduce({ ...s, stage: 'epilogue' }, { type: 'FINISH' }).state;
+    expect(s.stage).toBe('done');
+    expect(autosave(s)).toEqual({ ok: true });
+    const r = loadGame(kv);
+    expect(r.ok && r.state.stage).toBe('done');
+    clearSave(kv);
+    expect(loadGame(kv)).toEqual({ ok: false, notice: 'none' });
+    expect(() => clearSave(null)).not.toThrow();
+  });
+
+  it('R16 junk stage / location / shipPos / eventQueue → save_corrupted', () => {
+    const bad = (patch: Record<string, unknown>) => loadGame(mem({ [SAVE_KEY]: JSON.stringify({ ...game(), ...patch }) }));
+    for (const patch of [
+      { stage: 'boss' }, { stage: undefined },
+      { location: 'atlantis' }, { location: 'toString' }, { location: 3 },
+      { shipPos: { x: 2, y: 0.5 } }, { shipPos: { x: 0.5, y: -0.1 } }, { shipPos: { x: '0.5', y: 0.5 } }, { shipPos: null },
+      { eventQueue: 'steel-dumping' }, { eventQueue: undefined },
+    ]) expect(bad(patch)).toEqual({ ok: false, notice: 'save_corrupted' });
+    expect(bad({ location: 'sea', shipPos: { x: 0, y: 1 } }).ok).toBe(true);
+    expect(bad({ location: 'chile' }).ok).toBe(true);
   });
 });

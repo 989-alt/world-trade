@@ -82,14 +82,13 @@ function WhyScreen({ log, onLog, onDone }: { log: LogEvent[]; onLog: (e: LogInpu
   );
 }
 
-/** 결과 화면 숫자: 코인, 판정 정답/전체(방향+까닭 첫 시도), 일지 행 수 */
+/** 결과 화면 숫자: 코인, 판정 정답/전체(방향·까닭 모두 1차 시도 기준), 일지 행 수 */
 export function resultStats(state: GameState) {
-  const r = buildResult(state);
-  const j = r.summary;
+  const first = state.log.filter((e) => (e.type === 'judge_dir' || e.type === 'judge_cause') && e.attempt === 1);
   return {
     grade: computeGrade(state),
     coins: state.cash,
-    judge: { correct: j.judgeDir.correct + j.judgeCause.firstTryCorrect, total: j.judgeDir.total + j.judgeCause.total },
+    judge: { correct: first.filter((e) => 'correct' in e && e.correct).length, total: first.length },
     rows: buildLedger(state).length,
   };
 }
@@ -127,9 +126,11 @@ export function ResultScreen({ state, onDone }: { state: GameState; onDone: () =
 
 type Props = { state: GameState; dispatch: (a: Action) => void; onLog: (e: LogInput) => void; onDone: () => void };
 const PHASES = ['ledger', 'why', 'mind', 'result'] as const;
+/** 완주(done) 저장본을 이어하면 결과 화면부터 */
+export const firstPhase = (s: Pick<GameState, 'stage'>) => (s.stage === 'done' ? PHASES.indexOf('result') : 0);
 
 export function EpilogueScreen({ state, dispatch, onLog, onDone }: Props) {
-  const [i, setI] = useState(0);
+  const [i, setI] = useState(() => firstPhase(state));
   const phase = PHASES[i];
   const next = () => setI((n) => Math.min(n + 1, PHASES.length - 1));
   useEffect(() => {

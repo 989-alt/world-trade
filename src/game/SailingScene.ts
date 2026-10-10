@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { PORTS } from '../content/ports';
 import type { PortId } from '../content/types';
 import { nearestPort } from '../engine/economy';
-import { nextEventFor, reduce, type Action } from '../engine/state';
+import { distanceEventFor, nextEventFor, reduce, type Action } from '../engine/state';
 import type { GameState, Result } from '../engine/types';
 import { installAutopilot, routeBetween } from './autopilot';
 import { setDialogOpen } from './boot';
@@ -61,6 +61,9 @@ export class SailingScene extends Phaser.Scene {
   private keyboard!: Record<'up' | 'down' | 'left' | 'right' | 'w' | 'a' | 's' | 'd', Phaser.Input.Keyboard.Key>;
   private heading: Heading | null = null;
   private towing = false;
+  /** 이번 출항의 출항점과, 거리 트리거로 필수 카드를 이미 띄웠는지(한 출항에 한 번) */
+  private legStart: Pos = { x: 0, y: 0 };
+  private legFired = false;
   private autopilot: { port: PortId; path: Pos[]; i: number; resolve: () => void; reject: (e: Error) => void } | null = null;
 
   constructor() {
@@ -83,6 +86,8 @@ export class SailingScene extends Phaser.Scene {
     this.autopilot = null;
     const s = gameStore.get();
     if (!s) return; // 타이틀 화면 중: 빈 바다
+    this.legStart = { ...s.shipPos };
+    this.legFired = false;
 
     this.add.image(0, 0, 'map').setOrigin(0).setDisplaySize(WORLD_W, WORLD_H);
     const src = this.textures.get('mask').getSourceImage() as HTMLImageElement;
@@ -191,6 +196,13 @@ export class SailingScene extends Phaser.Scene {
       const event = nextEventFor(r.state, zone);
       if (event) return this.openDialog('ktrade:event', { event });
     }
+    if (!this.legFired) {
+      const event = distanceEventFor(r.state, this.legStart);
+      if (event) {
+        this.legFired = true;
+        return this.openDialog('ktrade:event', { event });
+      }
+    }
     if (r.state.fuel <= 0) this.tow();
   }
 
@@ -208,6 +220,10 @@ export class SailingScene extends Phaser.Scene {
     if (!s || !this.mask || s.stage !== 'main' || s.location !== 'sea') return;
     const pos = posAfterDialog(s.shipPos, this.mask, depart);
     if (pos !== s.shipPos) gameStore.set({ ...s, shipPos: pos });
+    if (depart) {
+      this.legStart = { ...pos };
+      this.legFired = false;
+    }
     this.syncShip();
     setDialogOpen(false);
     this.scene.resume();

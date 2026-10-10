@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Download, type Page } from '@playwright/test';
+import { EVENTS } from '../../src/content/events';
 import { PORT_BY_ID } from '../../src/content/ports';
 import type { PortId } from '../../src/content/types';
-import { answerEvent, homeTrade, judgeAndTrade, leave, logOf, newGame, sail, state } from './helpers';
+import { URL as GAME_URL, answerEvent, homeTrade, judgeAndTrade, leave, logOf, newGame, sail, state } from './helpers';
 
 const RESULT_PATH = fileURLToPath(new URL('./fixtures/last-result.json', import.meta.url));
 const SAIL_BUDGET_MS = 4 * 60_000; // S8 항해 누적 ≤ 4분
@@ -108,7 +109,7 @@ async function playthrough(page: Page): Promise<Run> {
   await page.getByRole('button', { name: '제출' }).click();
   await page.getByRole('button', { name: '다음' }).click();
   const mind: Record<string, string> = {
-    '뜻': '무역',
+    '나라와 나라 사이에 물자나 서비스를 사고파는 것': '무역',
     '다른 나라에서 사 오는 것': '수입',
     '다른 나라에 파는 것': '수출',
     '무역하는 까닭: 나라마다 자연환경·자원·자본·기술이 ○○': '차이',
@@ -146,6 +147,17 @@ async function playthrough(page: Page): Promise<Run> {
   expect(dialogs).toBeLessThanOrEqual(MAX_JUDGE_DIALOGS);
   expect(sailTotal).toBeLessThanOrEqual(SAIL_BUDGET_MS);
   expect(result.grade.grade).toBe('A');
+  // R1: 필수 이벤트 5장이 매 판 전부 event_choice 로그에
+  const chosen = log.flatMap((e) => (e.type === 'event_choice' ? [(e as unknown as { event: string }).event] : []));
+  expect(chosen).toEqual(expect.arrayContaining(EVENTS.filter((e) => e.required).map((e) => e.id)));
+
+  // R5: 결과 화면에서 같은 저장소의 새 page 로 이어하기 → 결과 화면(완주 저장은 「처음으로」 전까지 남는다)
+  const p2 = await page.context().newPage();
+  await p2.goto(GAME_URL);
+  await p2.getByRole('button', { name: '이어하기' }).click();
+  await expect(p2.locator('.ep-panel.result')).toBeVisible();
+  await expect(p2.locator('.ep-medal')).toHaveText(result.grade.grade);
+  await p2.close();
 
   await page.getByRole('button', { name: '처음으로' }).click();
   await expect(page.getByRole('button', { name: '이어하기' })).toBeDisabled(); // 완주 뒤 저장 삭제

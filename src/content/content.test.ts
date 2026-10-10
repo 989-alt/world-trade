@@ -4,7 +4,7 @@ import { GOODS, EVENT_ONLY_GOODS } from './goods';
 import { PORTS, START_DEPOT, START_CASH, REFUEL_PRICE } from './ports';
 import { RECIPES } from './recipes';
 import { EVENTS } from './events';
-import { FEEDBACK, whyBuys, whySells, shortageOption } from './feedback';
+import { FEEDBACK, whyBuys, whyRelays, whySells, shortageOption } from './feedback';
 import { MINDMAP_SLOTS, isAccepted, normalize } from './mindmap';
 import { PROLOGUE_STEPS, MINI_SIM } from './prologue';
 
@@ -52,6 +52,11 @@ describe('goods / ports', () => {
     }
     expect(PORTS.find((p) => p.id === 'busan')!.fareTier).toBe('home');
     expect(REFUEL_PRICE).toEqual({ near: 50, mid: 100, far: 150 });
+  });
+
+  it('R3 결핍 축 ≠ 그 항구 최고 축(수입 정답과 수출 정답이 겹치지 않는다). 타이 김 = 기술', () => {
+    for (const p of PORTS) for (const s of p.shortages) expect(p.correctCauses, `${p.id} ${s.good}`).not.toContain(s.shortageAxis);
+    expect(PORTS.find((p) => p.id === 'thai')!.shortages).toEqual([{ good: 'seaweed', shortageAxis: 'tech' }]);
   });
 
   it('busan shortages are all resource (M2), specialties match PRD', () => {
@@ -127,6 +132,24 @@ describe('events', () => {
     }
   });
 
+  it('R12 카드 글자 = 효과: 한류·박람회는 「○○ 시세가 오른다」, 박람회·자동화 항만엔 비용 문구 없음', () => {
+    const ev = (id: string) => EVENTS.find((e) => e.id === id)!;
+    const text = (id: string) => ev(id).choices.flatMap((c) => [c.labelKo, c.plus, c.minus]).join('\n');
+    const priceUp = (id: string, choice: string) => {
+      const c = ev(id).choices.find((x) => x.id === choice)!;
+      const e = c.effect as { type: string; good: string; factor: number };
+      expect(e.type).toBe('price');
+      expect(e.factor).toBeGreaterThan(1);
+      expect(c.plus).toBe(`${GOODS.find((g) => g.id === e.good)!.nameKo} 시세가 오른다`);
+    };
+    priceUp('hallyu', 'ship');
+    expect(ev('hallyu').choices[0].plus).toBe('화장품 시세가 오른다');
+    priceUp('expo', 'join');
+    expect(text('expo')).not.toContain('비용');
+    expect(text('port-automation')).not.toContain('투자 비용');
+    expect(ev('port-automation').choices.find((c) => c.id === 'skip')!.plus).not.toContain('비용');
+  });
+
   it('steel-dumping leave choice cites the 1970s steel case', () => {
     const leave = EVENTS.find((e) => e.id === 'steel-dumping')!.choices.find((c) => c.id === 'leave')!;
     expect(leave.feedbackKo).toContain('1970');
@@ -159,6 +182,9 @@ describe('mindmap / feedback / prologue', () => {
     expect(isAccepted('cause', '다르다')).toBe(true);
     expect(isAccepted('import', '수출')).toBe(false);
     expect(isAccepted('import', '')).toBe(false);
+    // R14 첫 칸 라벨은 '뜻' 이 아니라 무역의 뜻 문장(답 = 무역)
+    expect(MINDMAP_SLOTS[0].labelKo).toBe('나라와 나라 사이에 물자나 서비스를 사고파는 것');
+    expect(isAccepted('meaning', '무역')).toBe(true);
   });
 
   it('feedback M1..M9 have text and source', () => {
@@ -176,6 +202,8 @@ describe('mindmap / feedback / prologue', () => {
     expect(whyBuys('타이', '김')).toBe('타이가 김을 사 오는 까닭은?');
     expect(shortageOption('tech')).toBe('기술이 부족해서');
     expect(shortageOption('geo')).toBe('지리적 위치가 부족해서');
+    expect(whyRelays('싱가포르', '화장품')).toBe('싱가포르가 화장품을 사서 다시 파는 까닭은?');
+    expect(whyRelays('싱가포르', '화장품')).not.toContain('싸게');
   });
 
   it('prologue has 수입/수출 term cards and mini-sim 2+2 vs 3+3', () => {

@@ -4,7 +4,7 @@ import { GOODS, GOOD_BY_ID } from '../content/goods';
 import { PORT_BY_ID } from '../content/ports';
 import type { GoodId } from '../content/types';
 import { buyPrice, priceAt, qtyOf, sellsHere, withLog } from '../engine/economy';
-import { canMove, flagOwnSpecialty, startJudgment, type JudgmentSession } from '../engine/judgment';
+import { canMove, flagOwnSpecialty, startJudgment, turnDelay, type JudgmentSession } from '../engine/judgment';
 import type { Log } from '../engine/log';
 import { createRng, type Rng } from '../engine/rng';
 import type { GameState, LogInput, Result } from '../engine/types';
@@ -78,6 +78,7 @@ function PortCall({ store, state, close }: { store: GameStore; state: GameState;
   const entryFor = (r: Row) => entries.get(`${r.dir}:${r.good}`);
   const session = (r: Row): JudgmentSession | undefined => entryFor(r)?.session;
   const pending = [...entries.values()].some((e) => !canMove(e.session).ok);
+  const delay = turnDelay([...entries.values()].map((e) => e.session));
 
   const choose = (r: Row) => {
     setSelected(r.key);
@@ -148,7 +149,7 @@ function PortCall({ store, state, close }: { store: GameStore; state: GameState;
           banner={row.own}
           onAnswer={() => bump((n) => n + 1)}
         >
-          <TradePanel store={store} state={state} row={row} session={entry.session} />
+          <TradePanel store={store} state={state} row={row} session={entry.session} delay={delay} />
         </JudgmentDialog>
       )}
     </>
