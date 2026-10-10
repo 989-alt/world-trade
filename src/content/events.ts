@@ -1,0 +1,140 @@
+import type { GameEvent } from './types';
+
+/** 풀 11장: required 5장은 매 판 포함, 나머지 6장 중 시드로 1장 */
+export const EVENTS: GameEvent[] = [
+  {
+    id: 'steel-dumping', titleKo: '값싼 외국산 철강 밀려와… 국내 철강 공장 적자', required: true,
+    source: '교과서 p.108 / 지도서 p.246', zone: 'yellow-sea',
+    choices: [
+      { id: 'tariff', labelKo: '수입 철강에 관세를 매긴다', plus: '국내 철강 공장의 생산량을 지킨다', minus: '수입 철강 값이 올라 쓰는 쪽은 부담이 늘어난다',
+        effect: { type: 'price', good: 'steel', factor: 1.2 },
+        feedbackKo: '국내 산업을 지키려고 수입 상품에 높은 관세를 매기기도 합니다.', source: '교과서 p.108' },
+      { id: 'quota', labelKo: '수입량을 제한한다', plus: '국내 철강 공장이 버틸 시간을 번다', minus: '살 수 있는 철강이 줄어 값이 조금 오른다',
+        effect: { type: 'price', good: 'steel', factor: 1.1 },
+        feedbackKo: '관세를 매기는 것 말고도 수입하는 양을 제한해 국내 산업을 지키기도 합니다.', source: '교과서 p.108' },
+      { id: 'leave', labelKo: '그대로 둔다', plus: '싼 철강을 쓸 수 있다', minus: '국내 철강 공장 생산량이 줄어든다',
+        effect: { type: 'factoryLevel', delta: -1 },
+        feedbackKo: '수입이 늘면 국내 기업이 피해를 입고 관련 산업의 성장이 어려워질 수 있습니다.', source: '교과서 p.108 / 지도서 p.246' },
+    ],
+  },
+  {
+    id: 'factory-relocation', titleKo: '베트남으로 조립 공장 옮길까… 기업의 선택', required: true,
+    source: '교과서 p.109 / 지도서 p.247', zone: 'south-china-sea',
+    choices: [
+      { id: 'move', labelKo: '공장을 옮긴다', plus: '생산비가 줄고 현지 근로자의 소득이 늘어난다', minus: '정당한 임금과 환경 보호를 지켜야 하는 책임이 생긴다',
+        effect: { type: 'factoryLevel', delta: 1 },
+        feedbackKo: '기업이 생산에 유리한 나라로 공장을 옮기면 현지 근로자 소득과 저렴한 제품이라는 좋은 점이 있지만 임금과 환경 문제도 함께 살펴야 합니다.', source: '교과서 p.109 / 지도서 p.247' },
+      { id: 'stay', labelKo: '공장을 그대로 둔다', plus: '국내 일자리와 공장을 지킨다', minus: '생산비가 그대로여서 가격 경쟁이 어렵다',
+        effect: { type: 'none' },
+        feedbackKo: '외국의 저렴한 노동력을 쓸 때는 정당한 분배가 이루어져야 하고, 공장을 옮기지 않아도 좋은 점과 어려운 점이 함께 있습니다.', source: '지도서 p.247' },
+    ],
+  },
+  {
+    id: 'domestic-vs-import', titleKo: '국산 닭고기 있는데 더 싼 수입 닭고기, 무엇을 살까', required: true,
+    source: '교과서 p.98 / 지도서 p.223', zone: 'korea-strait',
+    choices: [
+      { id: 'domestic', labelKo: '국산을 산다', plus: '국내 농가를 돕는다', minus: '값이 더 비싸다',
+        effect: { type: 'none' },
+        feedbackKo: '국산을 고를 수도 있지만, 한 나라 안에서 구할 수 있어도 더 값싸거나 더 좋은 것은 수입하기도 합니다.', source: '교과서 p.98' },
+      { id: 'import', labelKo: '수입산을 산다', plus: '값이 더 싸다', minus: '국내 농가가 어려워질 수 있다',
+        effect: { type: 'none' },
+        feedbackKo: '한 나라 안에서 구할 수 있어도 더 값싸거나 더 좋은 물자를 다른 나라에서 수입하기도 합니다.', source: '교과서 p.98' },
+    ],
+  },
+  {
+    id: 'fair-trade', titleKo: '카카오 농장 아동 노동 보고… 어떤 카카오를 살까', required: true,
+    source: '지도서 pp.249~250', zone: 'indian-ocean',
+    choices: [
+      { id: 'fair', labelKo: '공정 무역 인증 카카오를 산다', plus: '생산자가 정당한 임금을 받고 우리 평판이 오른다', minus: '카카오 값이 비싸 소비자가 더 낸다',
+        effect: { type: 'reputation', delta: 1 },
+        feedbackKo: '공정 무역은 수출국과 수입국이 공평하게 이익을 나누고 생산자에게 정당한 임금을 주는 무역입니다.', source: '지도서 pp.249~250' },
+      { id: 'regular', labelKo: '일반 카카오를 산다', plus: '값이 싸서 소비자 부담이 적다', minus: '생산자 임금이 낮고 우리 평판이 떨어진다',
+        effect: { type: 'reputation', delta: -1 },
+        feedbackKo: '값이 싸더라도 아동 노동과 강제 노동이 있다면 정당한 무역이라 하기 어렵습니다.', source: '지도서 pp.249~250' },
+    ],
+  },
+  {
+    id: 'low-tariff-promise', titleKo: '칠레와 수입할 때 낮은 관세를 부과하기로 약속(FTA)하자는 소식', required: true,
+    source: '교과서 p.109 / 지도서 p.248', zone: 'east-pacific',
+    choices: [
+      { id: 'promise', labelKo: '낮은 관세를 약속한다', plus: '청포도 수입가가 내려가 소비자가 이익을 본다', minus: '국내 포도 농가가 피해를 본다',
+        effect: { type: 'price', good: 'grapes', factor: 0.8 },
+        feedbackKo: '수입할 때 낮은 관세를 부과하기로 약속하면 수입 상품이 싸지지만 국내 기업이 피해를 볼 수 있습니다.', source: '교과서 p.109 / 지도서 p.248' },
+      { id: 'refuse', labelKo: '약속하지 않는다', plus: '국내 포도 농가를 지킨다', minus: '청포도 수입가가 그대로다',
+        effect: { type: 'none' },
+        feedbackKo: '철강처럼 관세를 높여 국내 산업을 지킬 수도 있고, 낮은 관세를 약속해 수입을 늘릴 수도 있습니다.', source: '교과서 pp.108~109' },
+    ],
+  },
+  {
+    id: 'drought', titleKo: '타이·인도 가뭄에 설탕 값 급등', required: false,
+    source: '지도서 pp.236~237', zone: 'strait-of-malacca',
+    choices: [
+      { id: 'near', labelKo: '가까운 타이에서 계속 산다', plus: '가까워 연료가 덜 든다', minus: '가뭄으로 설탕 값이 크게 올랐다',
+        effect: { type: 'price', good: 'sugar', factor: 1.5 },
+        feedbackKo: '기후 변화나 가뭄처럼 상황이 바뀌면 무역 조건도 달라집니다.', source: '지도서 pp.236~237' },
+      { id: 'far', labelKo: '먼 브라질로 바꾼다', plus: '설탕 값이 덜 오른다', minus: '멀어서 연료가 더 든다',
+        effect: { type: 'price', good: 'sugar', factor: 1.2 },
+        feedbackKo: '인도네시아는 설탕 수입국을 가까운 타이와 인도에서 먼 브라질로 바꾸기도 했습니다.', source: '지도서 pp.236~237' },
+    ],
+  },
+  {
+    id: 'hallyu', titleKo: '드라마 수출 뒤 화장품 인기 껑충', required: false,
+    source: '교과서 p.102 / 지도서 pp.236~237', zone: 'east-sea',
+    choices: [
+      { id: 'ship', labelKo: '화장품을 더 싣는다', plus: '화장품 시세가 오른다', minus: '다른 상품 실을 자리가 줄어든다',
+        effect: { type: 'price', good: 'cosmetics', factor: 1.3 },
+        feedbackKo: '문화가 퍼지면 관련 상품의 수출도 늘어납니다.', source: '지도서 pp.236~237' },
+      { id: 'skip', labelKo: '평소처럼 싣는다', plus: '짐을 다양하게 싣는다', minus: '인기를 이용할 기회를 놓친다',
+        effect: { type: 'none' },
+        feedbackKo: '우리나라는 드라마, 화장품 같은 다양한 물자와 서비스를 수출합니다.', source: '교과서 p.102' },
+    ],
+  },
+  {
+    id: 'expo', titleKo: '독일 완구 박람회·미국 가전 박람회 초대장 도착', required: false,
+    source: '교과서 p.105 / 지도서 p.235', zone: 'north-pacific',
+    choices: [
+      { id: 'join', labelKo: '박람회에 참가한다', plus: '다음 턴에 무선 통신 기기 수요가 오른다', minus: '참가 비용이 든다',
+        effect: { type: 'price', good: 'phone', factor: 1.2 },
+        feedbackKo: '박람회에서 판매자가 상품을 홍보하고 구매 약속이 이루어져 무역이 활발해집니다.', source: '교과서 p.105' },
+      { id: 'decline', labelKo: '참가하지 않는다', plus: '비용을 아낀다', minus: '새 거래 기회를 놓친다',
+        effect: { type: 'none' },
+        feedbackKo: '박람회는 세계 여러 나라의 상품이 모여 무역이 일어나는 자리입니다.', source: '지도서 p.235' },
+    ],
+  },
+  {
+    id: 'mineral-coop', titleKo: '인도네시아, 광물 탐사 기술 협력 요청', required: false,
+    source: '교과서 p.106 / 지도서 p.243', zone: 'java-sea',
+    choices: [
+      { id: 'cooperate', labelKo: '탐사 기술을 협력한다', plus: '니켈을 안정적으로 싸게 구한다', minus: '기술을 나누는 수고가 든다',
+        effect: { type: 'price', good: 'nickel', factor: 0.85 },
+        feedbackKo: '각자 잘하는 분야로 협력하면 두 나라 모두 이익을 얻고 다른 협력도 늘어납니다.', source: '교과서 p.106 / 지도서 p.243' },
+      { id: 'decline', labelKo: '협력하지 않는다', plus: '우리 기술을 지킨다', minus: '니켈 값이 그대로다',
+        effect: { type: 'none' },
+        feedbackKo: '한국의 광물 탐사 기술과 인도네시아의 니켈 자원이 만나면 서로 이익이 됩니다.', source: '교과서 p.106' },
+    ],
+  },
+  {
+    id: 'port-automation', titleKo: '부산항 자동화 항만 투자 제안', required: false,
+    source: '교과서 p.107 / 지도서 pp.244~245', zone: 'busan-harbor',
+    choices: [
+      { id: 'invest', labelKo: '자동화 항만에 투자한다', plus: '이후 급유 비용이 줄어든다', minus: '투자 비용이 든다',
+        effect: { type: 'refuelDiscount', factor: 0.8 },
+        feedbackKo: '더 나은 무역 환경을 만들려는 경쟁이 있고, 부산항 자동화 항만이 그 예입니다.', source: '교과서 p.107' },
+      { id: 'skip', labelKo: '투자하지 않는다', plus: '비용을 아낀다', minus: '항만 경쟁에서 뒤처질 수 있다',
+        effect: { type: 'none' },
+        feedbackKo: '항구가 크고 교통이 편리해야 많은 상품을 효율적으로 나를 수 있습니다.', source: '교과서 p.104' },
+    ],
+  },
+  {
+    id: 'bridge-bid', titleKo: '인도 다리 건설 입찰 공고', required: false,
+    source: '교과서 p.107 / 지도서 pp.244~245', zone: 'bay-of-bengal',
+    choices: [
+      { id: 'bid', labelKo: '입찰에 참여한다', plus: '건설 기술을 수출하면 평판이 오른다', minus: '준비 비용이 들고 낙찰은 장담할 수 없다',
+        effect: { type: 'reputation', delta: 1 },
+        feedbackKo: '다른 나라의 철도, 도로, 발전소, 다리 같은 시설 건설을 맡으려는 경쟁도 있습니다.', source: '교과서 p.107' },
+      { id: 'pass', labelKo: '입찰하지 않는다', plus: '비용과 위험을 피한다', minus: '해외 건설 기회를 놓친다',
+        effect: { type: 'none' },
+        feedbackKo: '건설 기술 같은 서비스도 무역의 대상입니다.', source: '교과서 p.103' },
+    ],
+  },
+];
