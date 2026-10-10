@@ -26,7 +26,7 @@ export const whySells = (portName: string, goodName: string) =>
 
 /** 수출 거래 까닭 판정: 정답 = 항구의 결핍 축 */
 export const whyBuys = (portName: string, goodName: string) =>
-  `${portName}에서 ${josa(goodName, '을', '를')} 사 가는 까닭은 무엇일까요?`;
+  `${josa(portName, '이', '가')} ${josa(goodName, '을', '를')} 사 오는 까닭은?`;
 
 export const causeOption = (a: Axis) => AXIS_LABEL[a];
 /** 수출 쪽 선택지: "기술이 부족해서" */

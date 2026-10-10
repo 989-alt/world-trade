@@ -171,7 +171,8 @@ describe('mindmap / feedback / prologue', () => {
 
   it('question text helpers', () => {
     expect(whySells('타이', '쌀')).toBe('타이에서 쌀을 싸게 파는 까닭은 무엇일까요?');
-    expect(whyBuys('칠레', '무선 통신 기기')).toContain('를 사 가는');
+    expect(whyBuys('칠레', '무선 통신 기기')).toBe('칠레가 무선 통신 기기를 사 오는 까닭은?');
+    expect(whyBuys('타이', '김')).toBe('타이가 김을 사 오는 까닭은?');
     expect(shortageOption('tech')).toBe('기술이 부족해서');
     expect(shortageOption('geo')).toBe('지리적 위치가 부족해서');
   });
