@@ -15,9 +15,8 @@ type Run = { logLength: number; grade: string; ledger: unknown[] };
 const runs: Run[] = [];
 
 /**
- * seed 42 한 판. 입항 6회: 상하이 → 사우디 → 싱가포르(새로 고침) → 부산 → 일본 → 싱가포르 → 에필로그 → 내보내기.
- * 1·2턴은 까닭 1차 오답 후 정답(attempt 2). 판정 다이얼로그 10회, 일지 10행(싱가포르 중계 = 한국 미포함).
- * 베트남을 거치지 않는 까닭: 아래 '결함' 테스트(베트남 출항 직후 무전 카드 → 순간이동 → 자동 조타 중단).
+ * seed 42 한 판. 입항 6회: 베트남 → 사우디 → 싱가포르(새로 고침) → 부산 → 일본 → 싱가포르 → 에필로그 → 내보내기.
+ * 1·2턴은 까닭 1차 오답 후 정답(attempt 2). 판정 다이얼로그 11회, 일지 12행(베트남산 사우디 판매·싱가포르 중계 = 한국 미포함).
  */
 async function playthrough(page: Page): Promise<Run> {
   const sailMs: Partial<Record<string, number>> = {};
@@ -40,13 +39,13 @@ async function playthrough(page: Page): Promise<Run> {
   await homeTrade(page, 'phone', 'buy', 2);
   await leave(page);
 
-  // 1 상하이: 반도체 수출(까닭 1차 오답), 흑연 수입
-  await go(1, 'shanghai');
+  // 1 베트남: 반도체 수출(까닭 1차 오답), 무선 통신 기기 수입
+  await go(1, 'vietnam');
   await judgeAndTrade(page, 'semiconductor', 'sell', 2, true);
-  await judgeAndTrade(page, 'graphite', 'buy', 2);
+  await judgeAndTrade(page, 'phone', 'buy', 2);
   await leave(page);
 
-  // 2 사우디: 연료 게이지 감소 → 급유 100 내외. 무선 통신 기기 수출(까닭 1차 오답), 원유 수입
+  // 2 사우디: 연료 게이지 감소 → 급유 100 내외. 무선 통신 기기 수출(까닭 1차 오답, 부산산=수출·베트남산=중계), 원유·천연가스 수입
   const fuelBefore = (await state(page)).fuel;
   await go(2, 'saudi');
   const atSaudi = await state(page);
@@ -62,8 +61,9 @@ async function playthrough(page: Page): Promise<Run> {
   const afterRefuel = await state(page);
   expect(afterRefuel.cash).toBe(atSaudi.cash - refuel.cost);
   expect(afterRefuel.fuel).toBe(300);
-  await judgeAndTrade(page, 'phone', 'sell', 2, true);
+  await judgeAndTrade(page, 'phone', 'sell', 4, true);
   await judgeAndTrade(page, 'crude-oil', 'buy', 2);
+  await judgeAndTrade(page, 'natural-gas', 'buy', 2);
   await leave(page);
 
   // 3 싱가포르: 입항 직후 새로 고침 → 이어하기 → 같은 턴·현금
@@ -77,8 +77,8 @@ async function playthrough(page: Page): Promise<Run> {
   expect(restored.portCalls).toBe(before.portCalls);
   expect(restored.cash).toBe(before.cash);
   expect(restored.location).toBe('singapore');
-  await judgeAndTrade(page, 'graphite', 'sell', 2);
   await judgeAndTrade(page, 'crude-oil', 'sell', 2);
+  await judgeAndTrade(page, 'natural-gas', 'sell', 2);
   await leave(page);
 
   // 4 부산: 급유(0), 화장품 싣기, 반도체 사기
@@ -165,14 +165,16 @@ test.describe.serial('완주 seed 42', () => {
   });
 });
 
-test('예인 — 부산→독일 뱃길(연료 504 > 탱크 300)에서 연료 0 → 예인 연출 → 가장 가까운 항구, 거래 없음·급유만', async ({ page }) => {
+test('예인 — 급유 없이 두 구간(부산→칠레, 칠레→부산) 연속 항해 → 연료 0 → 예인 연출 → 가장 가까운 항구, 거래 없음·급유만', async ({ page }) => {
   await newGame(page);
   await leave(page);
+  await sail(page, 'chile');
+  await leave(page); // 칠레에서 급유하지 않는다
   await page.evaluate(() => {
-    void (window as unknown as { __ktrade: { sailTo(p: string): Promise<void> } }).__ktrade.sailTo('germany').catch(() => {});
+    void (window as unknown as { __ktrade: { sailTo(p: string): Promise<void> } }).__ktrade.sailTo('busan').catch(() => {});
   });
   const t0 = Date.now();
-  let fuelSeen = 300;
+  let fuelSeen = (await state(page)).fuel;
   let towedAt = 0;
   while (Date.now() - t0 < 180_000) {
     await answerEvent(page);
@@ -188,9 +190,10 @@ test('예인 — 부산→독일 뱃길(연료 504 > 탱크 300)에서 연료 0 
   expect(towedAt, '3분 안에 예인되지 않음').toBeGreaterThan(0);
   const s = await state(page);
   const towed = s.log.find((e) => e.type === 'towed') as { to: PortId };
+  expect(s.log.filter((e) => e.type === 'refuel')).toHaveLength(0);
   expect(s.fuel).toBe(0);
   expect(s.location).toBe(towed.to);
-  expect(s.portCalls).toBe(1);
+  expect(s.portCalls).toBe(2);
   expect(s.flags.towedCall).toBe(true);
   // 예인 연출(1.5초 트윈)이 끝난 뒤에야 항구 화면
   await expect(page.locator('.port-ui .ribbon.name')).toHaveText(PORT_BY_ID[towed.to].nameKo);
@@ -200,6 +203,17 @@ test('예인 — 부산→독일 뱃길(연료 504 > 탱크 300)에서 연료 0 
   await expect(page.locator('.port-ui .rows .row')).toHaveCount(0); // 거래 없음
   await page.locator('.port-ui').getByRole('button', { name: '급유', exact: true }).click();
   await expect.poll(async () => (await state(page)).fuel).toBe(300);
+});
+
+test('독일 — 부산에서 자동 조타로 한 탱크에 도착(연료 > 0, 예인 0)', async ({ page }) => {
+  await newGame(page);
+  await leave(page);
+  const ms = await sail(page, 'germany');
+  const s = await state(page);
+  console.log(JSON.stringify({ germanyMs: ms, fuel: s.fuel }));
+  expect(s.location).toBe('germany');
+  expect(s.fuel).toBeGreaterThan(0);
+  expect(s.log.filter((e) => e.type === 'towed')).toHaveLength(0);
 });
 
 test('조작 — ArrowRight 2초 → x 증가, ArrowUp 유지 → 육지에 막혀 정지', async ({ page }) => {
@@ -236,12 +250,9 @@ test('조작 — ArrowRight 2초 → x 증가, ArrowUp 유지 → 육지에 막�
   expect(s.location).toBe('sea');
 });
 
-// 결함(src 미수정, 보고): SailingScene.resumeFromDialog 는 출항뿐 아니라 무전 카드·일지를 닫을 때도 불린다.
-// 그때 배가 아무 항구 반경(0.03) 안이면 그 항구 출항점으로 옮겨 버린다 → 베트남 출항 직후 남중국해 카드가 베트남 반경 안에서 뜨면
-// 배가 베트남 출항점으로 순간이동하고, 자동 조타는 다음 웨이포인트로 육지를 가로지르다 'blocked by land' 로 끊긴다.
-// 기대: 카드를 닫아도 배는 제자리, 사우디까지 간다. 고쳐지면 test.fail 을 지운다.
-test('결함 — 항구 반경 안에서 무전 카드를 닫으면 배가 순간이동(베트남→사우디 자동 조타 중단)', async ({ page }) => {
-  test.fail();
+// T11 이 찾은 결함(T10 fix2 에서 수정): 항구 반경 안에서 무전 카드를 닫아도 배는 제자리여야 한다.
+// 베트남 출항 직후 남중국해 카드가 베트남 반경 안에서 뜬다 → 닫은 뒤 위치 그대로, 사우디까지 자동 조타가 이어진다.
+test('카드 닫기 — 항구 반경 안에서 무전 카드를 닫아도 배는 제자리(베트남→사우디)', async ({ page }) => {
   await newGame(page);
   await leave(page);
   await sail(page, 'vietnam');
