@@ -3,7 +3,7 @@
   "nickname": "별",
   "seat": "3",
   "seed": 42,
-  "finishedAt": "2026-10-10T09:06:13.172Z",
+  "finishedAt": "2026-10-10T10:52:30.765Z",
   "summary": {
     "cash": 4208,
     "portCalls": 6,
@@ -30,7 +30,7 @@
     "maxRefuel": 150,
     "portCalls": 6,
     "tank": 300,
-    "maxLegFuel": 269.5424
+    "maxLegFuel": 269.388
   },
   "ledger": [
     {
@@ -289,7 +289,7 @@
     {
       "type": "refuel",
       "port": "saudi",
-      "fuel": 93.4441746038145,
+      "fuel": 70.35106970205203,
       "cost": 100,
       "t": 26
     },
@@ -533,7 +533,7 @@
     {
       "type": "refuel",
       "port": "busan",
-      "fuel": 109.62746718583372,
+      "fuel": 101.7091142098588,
       "cost": 0,
       "t": 58
     },

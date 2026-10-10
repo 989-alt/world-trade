@@ -52,12 +52,23 @@ export function isLand(m: Mask, x: number, y: number): boolean {
   return m.data[py * m.width + px] === 1;
 }
 
-/** 경로 위 어느 점이라도 육지면 제자리(같은 객체) 반환 — 미끄러짐·밀어내기·관통 없음 */
+/** 선수·선미 = 중심에서 헤딩 방향 ±14 마스크px(월드 = 마스크 크기라 월드px 와 같다). 배 그림 36px 의 끝보다 조금 안쪽 */
+export const HULL_PX = 14;
+
+/** p 에 헤딩 dir(마스크 픽셀 공간 단위벡터, 0 벡터면 중심만)로 놓인 배의 선수·중심·선미 중 하나라도 육지인가 */
+export function hullOnLand(m: Mask, p: Pos, dir: Pos, half = HULL_PX): boolean {
+  const hx = (dir.x * half) / m.width;
+  const hy = (dir.y * half) / m.height;
+  return isLand(m, p.x, p.y) || isLand(m, p.x + hx, p.y + hy) || isLand(m, p.x - hx, p.y - hy);
+}
+
+/** 경로 위 어느 점에서라도 선체 3점(선수·중심·선미) 중 하나가 육지면 제자리(같은 객체) 반환 — 미끄러짐·밀어내기·관통 없음 */
 export function tryMove(m: Mask, pos: Pos, delta: Pos): Pos {
   const dist = Math.hypot(delta.x * m.width, delta.y * m.height);
   const steps = Math.max(1, Math.ceil(dist / STEP_PX));
+  const dir = dist === 0 ? { x: 0, y: 0 } : { x: (delta.x * m.width) / dist, y: (delta.y * m.height) / dist };
   for (let i = 1; i <= steps; i++) {
-    if (isLand(m, pos.x + (delta.x * i) / steps, pos.y + (delta.y * i) / steps)) return pos;
+    if (hullOnLand(m, { x: pos.x + (delta.x * i) / steps, y: pos.y + (delta.y * i) / steps }, dir)) return pos;
   }
   return { x: pos.x + delta.x, y: pos.y + delta.y };
 }

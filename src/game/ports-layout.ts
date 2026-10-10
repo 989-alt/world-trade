@@ -1,6 +1,6 @@
 import { PORTS } from '../content/ports';
 import type { Port } from '../content/types';
-import { isOcean, type Mask } from './collision';
+import { hullOnLand, isOcean, type Mask } from './collision';
 import type { Pos } from './ship';
 
 /** 입항 가능 반경(비율 좌표, 엔진 dist 와 같은 잣대) */
@@ -22,12 +22,25 @@ export function posAfterDialog(pos: Pos, m: Mask, depart: boolean): Pos {
   return near ? exitPoint(near, m) : pos;
 }
 
-/** 출항 위치: 반경 1.5배 원 위에서 큰 바다(갇힌 호수 제외)이고 어떤 항구 반경에도 들지 않는 첫 점(동쪽부터 15°씩). 없으면 핀 자리 */
+/**
+ * 출항 위치: 반경 1.5배 원 위(동쪽부터 15°씩)에서 큰 바다(갇힌 호수 제외)이고 어떤 항구 반경에도 들지 않는 점 중,
+ * 선체 3점(±14)이 바다인 방향(16방위)이 가장 많은 점 — 같으면 배 그림 끝(±18)까지 바다인 방향이 많은 점, 그래도 같으면 먼저 본 점.
+ * 출항하자마자 어느 쪽 키를 눌러도 막히지 않게(V11). 바다 점이 없으면 핀 자리
+ */
 export function exitPoint(port: Port, m: Mask): Pos {
+  let best: Pos = { ...port.mapPos };
+  let bestScore = -1;
   for (let a = 0; a < 360; a += 15) {
     const t = (a * Math.PI) / 180;
     const p = { x: port.mapPos.x + Math.cos(t) * DOCK_RADIUS * 1.5, y: port.mapPos.y + Math.sin(t) * DOCK_RADIUS * 1.5 };
-    if (isOcean(m, p.x, p.y) && !nearestPortWithin(p)) return p;
+    if (!isOcean(m, p.x, p.y) || nearestPortWithin(p)) continue;
+    let score = 0;
+    for (let k = 0; k < 16; k++) {
+      const dir = { x: Math.cos((k * Math.PI) / 8), y: Math.sin((k * Math.PI) / 8) };
+      if (!hullOnLand(m, p, dir)) score += 17;
+      if (!hullOnLand(m, p, dir, 18)) score += 1;
+    }
+    if (score > bestScore) [best, bestScore] = [p, score];
   }
-  return { ...port.mapPos };
+  return best;
 }

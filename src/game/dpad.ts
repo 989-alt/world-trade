@@ -32,6 +32,10 @@ export class TouchPad {
   private anchorPointer: number | null = null;
   private pad: Phaser.GameObjects.Image;
   private anchor: Phaser.GameObjects.Image;
+  /** 씬이 UI 전용 카메라(줌 1·스크롤 0)에만 그린다 → 월드 카메라 줌·추적과 무관하게 같은 화면 자리·크기 */
+  get images() {
+    return [this.pad, this.anchor];
+  }
 
   constructor(scene: Phaser.Scene, onAnchor: () => void) {
     if (scene.input.manager.pointersTotal < 3) scene.input.addPointer(1); // 마우스 + 터치 1 + 1 = 터치 2개(재시작마다 늘지 않게)

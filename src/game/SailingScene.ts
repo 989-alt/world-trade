@@ -5,7 +5,7 @@ import { nearestPort } from '../engine/economy';
 import { saveGame } from '../engine/save';
 import { nextEventFor, reduce, requiredEventNow, type Action } from '../engine/state';
 import type { GameState, Result } from '../engine/types';
-import { installAutopilot, routeBetween } from './autopilot';
+import { installAutopilot, routeBetween, towPath } from './autopilot';
 import { setDialogOpen } from './boot';
 import { maskFromRGBA, tryMove, withOcean, type Mask } from './collision';
 import { TouchPad } from './dpad';
@@ -53,7 +53,10 @@ const emit = (name: string, detail: unknown) => window.dispatchEvent(new CustomE
 const toWorld = (p: Pos) => ({ x: p.x * WORLD_W, y: p.y * WORLD_H });
 const token = (name: string) =>
   Phaser.Display.Color.HexStringToColor(getComputedStyle(document.documentElement).getPropertyValue(name).trim()).color;
-const SHIP_PX = 64;
+/** 배 그림 긴 변(월드px). 대한 해협(약 60px)보다 충분히 작게 — 선체 충돌은 collision.ts HULL_PX(±14) */
+const SHIP_PX = 36;
+/** 월드 카메라 줌: 화면 1280×720 에 월드 800×450 이 보인다 */
+const ZOOM = 1.6;
 
 export class SailingScene extends Phaser.Scene {
   private mask!: Mask;
@@ -91,7 +94,7 @@ export class SailingScene extends Phaser.Scene {
     this.legStart = { ...s.shipPos };
     this.dockAfterCard = false;
 
-    this.add.image(0, 0, 'map').setOrigin(0).setDisplaySize(WORLD_W, WORLD_H);
+    const map = this.add.image(0, 0, 'map').setOrigin(0); // 원본 1536×1024 = 월드 크기
     const src = this.textures.get('mask').getSourceImage() as HTMLImageElement;
     const cv = document.createElement('canvas');
     [cv.width, cv.height] = [src.width, src.height];
@@ -110,9 +113,11 @@ export class SailingScene extends Phaser.Scene {
     this.heading = null;
     this.setHeading('e');
     this.syncShip();
-    this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H).startFollow(this.ship, true, 1, 0.1);
+    // 경계 안에서만 보므로 지도 가장자리에서도 바탕색이 드러나지 않는다. roundPixels 끔 + 같은 lerp 로 주춤거림 없이 따라간다
+    this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H).setZoom(ZOOM).startFollow(this.ship, false, 0.08, 0.08);
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      this.tweens.add({ targets: this.ship, angle: { from: -3, to: 3 }, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      // 흔들림 ±1.5°, 한 주기 2초
+      this.tweens.add({ targets: this.ship, angle: { from: -1.5, to: 1.5 }, duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     }
 
     // 캡처 끔: 타이틀·대화 입력칸에서 WASD·스페이스 타자가 막히지 않게
@@ -121,6 +126,9 @@ export class SailingScene extends Phaser.Scene {
     kb.on('keydown-ENTER', () => this.dock());
     kb.on('keydown-SPACE', () => this.dock());
     this.pad = new TouchPad(this, () => this.dock());
+    // 화면 고정 UI 는 줌 1 UI 카메라에만, 지도·핀·배는 월드 카메라에만 그린다
+    this.cameras.add(0, 0, this.scale.width, this.scale.height).ignore([map, pins, this.ship]);
+    this.cameras.main.ignore(this.pad.images);
 
     installAutopilot({
       // 방금 떠난 항구(마지막 depart 로그)의 출항점에서 고정 뱃길을 따라간다. 부산 출항점은 일본 핀이 더 가까워 거리로 고르면 안 된다
@@ -133,6 +141,13 @@ export class SailingScene extends Phaser.Scene {
         }),
       dock: () => this.dock(),
       state: () => gameStore.get(),
+      view: () => {
+        const v = this.cameras.main.worldView;
+        return {
+          ship: { x: this.ship.x, y: this.ship.y, w: this.ship.displayWidth, h: this.ship.displayHeight },
+          cam: { x: v.x, y: v.y, w: v.width, h: v.height, zoom: this.cameras.main.zoom },
+        };
+      },
     });
 
     // 항구 안에서 시작·복원(새 판 부산, 입항 중 저장) → 그 항구 화면으로. create 안에서 pause 하면 Phaser 가 RUNNING 으로 덮어써 CREATE 뒤로 미룬다
@@ -237,19 +252,33 @@ export class SailingScene extends Phaser.Scene {
     this.scene.resume();
   }
 
-  /** 연료 0: 입력 무시 → 엔진 TOW(가장 가까운 항구·급유만 입항) → 1.5초 예인 → 그 항구 화면 */
+  /** 연료 0: 입력 무시 → 엔진 TOW(가장 가까운 항구·급유만 입항) → 뱃길을 따라 1.5~3초 등속 예인 → 그 항구 화면 */
   private tow() {
+    const at = gameStore.get()!.shipPos;
     const due = requiredEventNow(gameStore.get()!, this.legStart, true);
     if (due) return this.openDialog('ktrade:event', { event: due }); // 카드를 닫으면 update 가 다시 tow
     const r = gameStore.dispatch({ type: 'TOW' });
     if (r.reason) return;
     this.towing = true;
     this.pad.clear();
-    this.tweens.add({
-      targets: this.ship,
-      ...toWorld(r.state.shipPos),
-      duration: 1500,
-      ease: 'Sine.inOut',
+    // 직선으로 대륙을 건너지 않게 바다 뱃길(지금 위치 → 가까운 뱃길 점 → 예인 항구)을 따라간다
+    const path = towPath(at, r.state.location as PortId, this.mask).map(toWorld);
+    const seg = path.slice(1).map((p, i) => Math.hypot(p.x - path[i].x, p.y - path[i].y));
+    const total = seg.reduce((a, b) => a + b, 0);
+    this.tweens.addCounter({
+      from: 0,
+      to: total,
+      duration: Phaser.Math.Clamp(total * 4, 1500, 3000), // 250 월드px/초, 1.5~3초 안으로
+      onUpdate: (tw) => {
+        let d = tw.getValue() ?? 0;
+        let i = 0;
+        while (i < seg.length - 1 && d > seg[i]) d -= seg[i++];
+        const [a, b] = [path[i], path[i + 1]];
+        const k = seg[i] ? Math.min(1, d / seg[i]) : 1;
+        this.ship.setPosition(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k);
+        const h = headingOf({ x: b.x - a.x, y: b.y - a.y });
+        if (h) this.setHeading(h);
+      },
       onComplete: () => {
         this.towing = false;
         this.openDialog('ktrade:docked', { port: r.state.location });

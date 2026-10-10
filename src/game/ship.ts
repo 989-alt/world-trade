@@ -1,8 +1,8 @@
 import { PORT_BY_ID } from '../content/ports';
 
-/** 지도 1536×1024(3:2)를 가로 1280 에 맞춘 월드. 비율 좌표 x·y 는 이 크기에 곱한다 */
-export const WORLD_W = 1280;
-export const WORLD_H = (1280 * 1024) / 1536; // 853.33
+/** 월드 = 지도 원본 1536×1024(마스크와 같은 크기라 월드 1px = 마스크 1px). 비율 좌표 x·y 는 이 크기에 곱한다 */
+export const WORLD_W = 1536;
+export const WORLD_H = 1024;
 
 export type Pos = { x: number; y: number };
 export type Keys = { up: boolean; down: boolean; left: boolean; right: boolean };
@@ -14,7 +14,7 @@ export const pxDist = (a: Pos, b: Pos) => Math.hypot((a.x - b.x) * WORLD_W, (a.y
 
 /**
  * PRD §3: 부산→LA 직선 약 25초.
- * 부산(.48,.33)→LA(.75,.36) = hypot(.27×1280, .03×853.3) = 346.5px → 346.5/25 = 13.86 px/s (60fps 에서 0.231 px/프레임)
+ * 부산(.48,.33)→LA(.75,.36) = hypot(.27×1536, .03×1024) = 415.9px → 415.9/25 = 16.63 px/s (60fps 에서 0.277 px/프레임)
  */
 export const SAIL_SECONDS = 25;
 export const SPEED_PX = pxDist(PORT_BY_ID.busan.mapPos, PORT_BY_ID.la.mapPos) / SAIL_SECONDS;

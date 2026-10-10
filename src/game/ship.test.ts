@@ -25,11 +25,18 @@ describe('ship movement', () => {
     expect(headingOf({ x: 0, y: 0 })).toBeNull();
   });
 
-  it('Busan → LA straight takes ≈25 s at 60 fps (PRD §3)', () => {
+  it('V1 월드 = 지도 원본 1536×1024, 비율 좌표는 그대로(부산 .48,.33 → 월드 737.28,337.92)', () => {
+    expect([WORLD_W, WORLD_H]).toEqual([1536, 1024]);
+    expect(PORT_BY_ID.busan.mapPos).toEqual({ x: 0.48, y: 0.33 });
+    expect(PORT_BY_ID.busan.mapPos.x * WORLD_W).toBeCloseTo(737.28, 9);
+    expect(PORT_BY_ID.busan.mapPos.y * WORLD_H).toBeCloseTo(337.92, 9);
+  });
+
+  it('V4 Busan → LA straight takes ≈25 s at 60 fps (PRD §3) — 월드가 커져 px/s 는 커지고 초는 같다', () => {
     const a = PORT_BY_ID.busan.mapPos;
     const b = PORT_BY_ID.la.mapPos;
-    expect(pxDist(a, b)).toBeCloseTo(346.5, 1);
-    expect(SPEED_PX).toBeCloseTo(13.86, 2);
+    expect(pxDist(a, b)).toBeCloseTo(415.86, 1);
+    expect(SPEED_PX).toBeCloseTo(16.63, 2);
     const w = { x: (b.x - a.x) * WORLD_W, y: (b.y - a.y) * WORLD_H };
     const len = Math.hypot(w.x, w.y);
     const dir = { x: w.x / len, y: w.y / len };
@@ -50,6 +57,23 @@ describe('ship movement', () => {
       [{ down: true }, 'ship-s'], [{ down: true, left: true }, 'ship-sw'], [{ left: true }, 'ship-w'], [{ up: true, left: true }, 'ship-nw'],
     ];
     for (const [keys, sprite] of cases) expect(spriteKey(headingOf(dirFromKeys(k(keys)))!)).toBe(sprite);
+  });
+});
+
+describe('V2·V5·V8 항해 씬 설정(소스)', () => {
+  it('카메라 줌 1.6 · roundPixels 끔 · lerp 0.08/0.08 · 경계 0..월드 · 화면 고정 UI 는 UI 카메라에만', async () => {
+    const src = (await import('./SailingScene.ts?raw')).default;
+    expect(src).toContain('const ZOOM = 1.6;');
+    expect(src).toContain('setBounds(0, 0, WORLD_W, WORLD_H).setZoom(ZOOM).startFollow(this.ship, false, 0.08, 0.08)');
+    expect(src).toContain('.ignore([map, pins, this.ship])');
+    expect(src).toContain('this.cameras.main.ignore(this.pad.images)');
+    expect(src).toContain('const SHIP_PX = 36;');
+  });
+  it('흔들림 ±1.5° · 한 주기 2초(1000ms 왕복) · prefers-reduced-motion 이면 트윈 없음', async () => {
+    const src = (await import('./SailingScene.ts?raw')).default;
+    expect(src).toMatch(
+      /if \(!window\.matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches\) \{[^}]*\n\s*this\.tweens\.add\(\{ targets: this\.ship, angle: \{ from: -1\.5, to: 1\.5 \}, duration: 1000, yoyo: true, repeat: -1/,
+    );
   });
 });
 
