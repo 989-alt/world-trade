@@ -101,7 +101,7 @@ describe('이벤트 드로우', () => {
     expect(s.flags.refuelFactor).toBe(0.8);
     s = run(s, [{ type: 'ENTER_PORT', port: 'saudi' }]).state;
     s = { ...s, fuel: 200 };
-    const r = reduce(s, { type: 'REFUEL', amount: 100 });
+    const r = reduce(s, { type: 'REFUEL' }); // 사우디 mid 100 × 0.8
     expect(s.cash - r.state.cash).toBe(80);
 
     let t = reduce(start(), { type: 'LEAVE_PORT' }).state;

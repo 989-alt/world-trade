@@ -5,35 +5,37 @@ import type { GameState, Item, LogInput, Reason, Result } from './types';
 
 export const CARGO_CAP = 4;
 export const PORT_CALLS = 6;
-export const FUEL_CAP = START_FUEL;
+/** 연료 탱크 = 시작 연료 */
+export const TANK = START_FUEL;
 export const EMPLOYMENT_PER_LEVEL = 120;
 /** 누적 수출액 임계값: 1→2, 2→3 */
 export const FACTORY_THRESHOLDS = [1500, 3500] as const;
 export const MAX_FACTORY_LEVEL = 3;
 
 /* ── 연료 ──────────────────────────────────────────────
- * 연료 1 = 급유 1코인(COIN_PER_FUEL = 1, content START_FUEL 주석 "연료 단위 = 코인 급유가와 같은 눈금").
- * FUEL_PER_UNIT = 지도 비율 거리 1 당 연료.
- *   부산에서 가장 먼 항구(칠레, 직선 0.6040)의 편도 = REFUEL_PRICE.far(150) 이 되게 floor(150 / 0.6040) = 248.
- *   → 부산→상하이 0.0566 ≈ 14, 부산→사우디 0.2555 ≈ 63, 부산→LA 0.2717 ≈ 67, 칠레 ≈ 150.
- * 지도 핀 좌표가 50/100/150 비율이 아니라서(사우디·LA 거리가 거의 같다) 거리 비례로는 세 값을 동시에 맞출 수 없다.
- * 파산 불가 불변식(아래 assert)을 지키는 쪽으로 맞췄다. 사우디 ≈ 100 이 필요하면 START_FUEL·START_CASH 판정이 먼저다.
+ * 소비: 지도 비율 거리 1 당 FUEL_PER_UNIT = floor(290 / 부산→칠레 직선 0.6044) = 479 → 칠레 편도 ≈ 289.5 ≤ TANK(300). (480 이면 290.1 로 상한 초과)
+ *   부산→상하이 0.0566 ≈ 27, 사우디 0.2555 ≈ 122, LA 0.2717 ≈ 130.
+ * 급유: 항구에서 탱크를 가득 채우고 fareTier 정액을 낸다(부산 0 / near 50 / mid 100 / far 150) × 자동화 항만 배수.
  */
-export const COIN_PER_FUEL = 1;
-export const FUEL_PER_UNIT = 248;
+export const FUEL_PER_UNIT = 479;
 
 export const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 export const fuelCostFor = (distance: number) => distance * FUEL_PER_UNIT;
 
 const HOME = PORT_BY_ID.busan;
-/** 부산에서 가장 먼 항구까지 편도 연료 */
+/** 부산에서 가장 먼 항구까지 직선 편도 연료 */
 export const MAX_LEG_FUEL = Math.max(...PORTS.map((p) => fuelCostFor(dist(HOME.mapPos, p.mapPos))));
-/** 한 번 입항에 필요한 최대 급유비 */
+/** 한 번 입항의 최대 급유비 */
 export const MAX_REFUEL = REFUEL_PRICE.far;
 
-/* 파산 불가 불변식(PRD §4.7, S9): 시작 연료로 최장 왕복, 한 푼도 못 벌어도 6회 급유 */
-if (!(START_FUEL >= 2 * MAX_LEG_FUEL)) throw new Error(`invariant: START_FUEL ${START_FUEL} < round trip ${2 * MAX_LEG_FUEL}`);
-if (!(MAX_LEG_FUEL * COIN_PER_FUEL <= MAX_REFUEL)) throw new Error(`invariant: max leg ${MAX_LEG_FUEL} > MAX_REFUEL ${MAX_REFUEL}`);
+/** 이 항구의 급유 요금(할인 반영) */
+export function refuelFare(state: GameState, port: Port): number {
+  return port.fareTier === 'home' ? 0 : Math.round(REFUEL_PRICE[port.fareTier] * state.flags.refuelFactor);
+}
+
+/* 파산 불가 불변식(PRD §4.7, S9): 가득 찬 탱크로 최장 편도, 한 푼도 못 벌어도 6회 급유 */
+if (START_FUEL !== TANK) throw new Error('invariant: START_FUEL !== TANK');
+if (!(TANK >= MAX_LEG_FUEL)) throw new Error(`invariant: TANK ${TANK} < longest leg ${MAX_LEG_FUEL}`);
 if (!(START_CASH >= MAX_REFUEL * PORT_CALLS)) throw new Error(`invariant: START_CASH ${START_CASH} < ${MAX_REFUEL} x ${PORT_CALLS}`);
 
 /* ── 가격 ── */
@@ -205,19 +207,16 @@ export function process(state: GameState, recipe: Recipe): Result {
 }
 
 /* ── 연료 ── */
-/** 항구에서 급유. amount 생략 = 가득. 현금이 허락하는 만큼만 산다 */
-export function refuel(state: GameState, amount = FUEL_CAP): Result {
+/** 항구에서 급유: 탱크를 가득 채우고 fareTier 정액을 낸다 */
+export function refuel(state: GameState): Result {
   if (state.stage !== 'main') return reject(state, 'wrong_stage');
   if (state.location === 'sea') return reject(state, 'not_in_port');
-  const space = FUEL_CAP - state.fuel;
-  const want = Math.min(amount, space);
-  if (want <= 0) return reject(state, 'tank_full');
-  const unit = COIN_PER_FUEL * state.flags.refuelFactor;
-  const fuel = Math.min(want, Math.floor(state.cash / unit));
-  if (fuel <= 0) return reject(state, 'no_cash');
-  const cost = Math.round(fuel * unit);
+  if (state.fuel >= TANK) return reject(state, 'tank_full');
+  const port = PORT_BY_ID[state.location];
+  const cost = refuelFare(state, port);
+  if (state.cash < cost) return reject(state, 'no_cash');
   return {
-    state: withLog({ ...state, fuel: state.fuel + fuel, cash: state.cash - cost }, { type: 'refuel', port: state.location, fuel, cost }),
+    state: withLog({ ...state, fuel: TANK, cash: state.cash - cost }, { type: 'refuel', port: port.id, fuel: TANK - state.fuel, cost }),
   };
 }
 

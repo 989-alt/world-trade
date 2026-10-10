@@ -3,7 +3,7 @@ import type { PortId } from '../content/types';
 import { PORT_BY_ID, PORTS, REFUEL_PRICE, START_CASH, START_FUEL } from '../content/ports';
 import { RECIPES } from '../content/recipes';
 import {
-  CARGO_CAP, COIN_PER_FUEL, FUEL_PER_UNIT, MAX_LEG_FUEL, MAX_REFUEL, PORT_CALLS,
+  CARGO_CAP, FUEL_PER_UNIT, MAX_LEG_FUEL, MAX_REFUEL, PORT_CALLS, TANK,
   buy, dist, factoryLevelFor, fuelCostFor, load, moveShip, priceAt, process, refuel, sell, tow,
 } from './economy';
 import { newGame, reduce } from './state';
@@ -160,17 +160,11 @@ describe('공장', () => {
 });
 
 describe('연료', () => {
-  it('보정: 부산에서 가장 먼 항구(칠레) 편도 = REFUEL_PRICE.far(150), 연료 1 = 1코인', () => {
-    expect(COIN_PER_FUEL).toBe(1);
-    expect(FUEL_PER_UNIT).toBe(Math.floor(REFUEL_PRICE.far / dist(PORT_BY_ID.busan.mapPos, PORT_BY_ID.chile.mapPos)));
-    expect(legFuel('busan', 'chile')).toBeGreaterThan(REFUEL_PRICE.far * 0.99);
-    expect(legFuel('busan', 'chile')).toBeLessThanOrEqual(REFUEL_PRICE.far);
-    // 거리 비례 실측값(보고용 기록). PRD 목표 50/100/150 과의 차이는 지도 좌표 비율 문제
-    expect(Math.round(legFuel('busan', 'shanghai'))).toBe(14);
-    expect(Math.round(legFuel('busan', 'saudi'))).toBe(63);
-    expect(Math.round(legFuel('busan', 'la'))).toBe(67);
-    expect(legFuel('busan', 'shanghai')).toBeLessThan(legFuel('busan', 'saudi'));
-    expect(legFuel('busan', 'saudi')).toBeLessThan(legFuel('busan', 'la'));
+  it('소비: 부산에서 가장 먼 직선 편도(칠레) ≈ 290 ≤ TANK', () => {
+    expect(FUEL_PER_UNIT).toBe(Math.floor(290 / dist(PORT_BY_ID.busan.mapPos, PORT_BY_ID.chile.mapPos)));
+    expect(MAX_LEG_FUEL).toBe(legFuel('busan', 'chile'));
+    expect(MAX_LEG_FUEL).toBeLessThanOrEqual(290);
+    expect(MAX_LEG_FUEL).toBeGreaterThan(285);
   });
 
   it('항해 — 이동 거리만큼 연료 소비, 모자라면 남은 만큼만 가고 0', () => {
@@ -185,28 +179,40 @@ describe('연료', () => {
     expect(moveShip(at('busan'), 0.1, 0).reason).toBe('not_at_sea');
   });
 
-  it('급유 — 코인→연료, 현금만큼만, 0 이면 no_cash, 가득이면 tank_full', () => {
-    const r = refuel(at('saudi', { fuel: 200 }), 100);
-    expect([r.state.fuel, START_CASH - r.state.cash]).toEqual([300, 100]);
-    expect(last(r.state.log)).toMatchObject({ type: 'refuel', port: 'saudi', fuel: 100, cost: 100 });
-    const part = refuel(at('saudi', { fuel: 0, cash: 40 }));
-    expect([part.state.fuel, part.state.cash]).toEqual([40, 0]);
-    const none = refuel(at('saudi', { fuel: 0, cash: 0 }));
-    expect(none.reason).toBe('no_cash');
-    expect(refuel(at('saudi')).reason).toBe('tank_full');
+  it('급유 요금제 — 가득 채우고 정액: 부산 0 / 상하이 50 / 사우디 100 / LA 150', () => {
+    for (const [port, fare] of [['busan', 0], ['shanghai', 50], ['saudi', 100], ['la', 150]] as const) {
+      const r = refuel(at(port, { fuel: 10 }));
+      expect(r.reason).toBeUndefined();
+      expect([r.state.fuel, START_CASH - r.state.cash]).toEqual([TANK, fare]);
+      expect(last(r.state.log)).toMatchObject({ type: 'refuel', port, fuel: TANK - 10, cost: fare });
+    }
   });
 
-  it('자동화 항만 선택 후 급유 20% 할인', () => {
+  it('자동화 항만 선택 후 급유 20% 할인 — 사우디 100 → 80', () => {
     const s = at('saudi', { fuel: 200 });
-    const r = refuel({ ...s, flags: { ...s.flags, refuelFactor: 0.8 } }, 100);
+    const r = refuel({ ...s, flags: { ...s.flags, refuelFactor: 0.8 } });
     expect(START_CASH - r.state.cash).toBe(80);
   });
 
-  it('파산 불가 불변식 — START_FUEL ≥ 최장 왕복, START_CASH ≥ MAX_REFUEL × 6, 모든 부산 편도 ≤ MAX_REFUEL', () => {
+  it('급유 거부 — 가득이면 tank_full, 요금보다 현금이 적으면 no_cash(부분 급유 없음)', () => {
+    const full = at('saudi');
+    expect(refuel(full).reason).toBe('tank_full');
+    expect(refuel(full).state).toBe(full);
+    const poor = at('saudi', { fuel: 0, cash: 99 });
+    const r = refuel(poor);
+    expect(r.reason).toBe('no_cash');
+    expect(r.state).toBe(poor);
+    expect(refuel(at('busan', { fuel: 0, cash: 0 })).state.fuel).toBe(TANK); // 부산은 0코인
+  });
+
+  it('파산 불가 불변식 — START_FUEL = TANK = 300 ≥ 최장 편도, START_CASH ≥ 150 × 6', () => {
+    expect(TANK).toBe(300);
+    expect(START_FUEL).toBe(TANK);
+    expect(TANK).toBeGreaterThanOrEqual(MAX_LEG_FUEL);
+    for (const p of PORTS) expect(legFuel('busan', p.id)).toBeLessThanOrEqual(TANK);
+    expect(MAX_REFUEL).toBe(REFUEL_PRICE.far);
     expect(MAX_REFUEL).toBe(150);
-    expect(START_FUEL).toBeGreaterThanOrEqual(2 * MAX_LEG_FUEL);
     expect(START_CASH).toBeGreaterThanOrEqual(MAX_REFUEL * PORT_CALLS);
-    for (const p of PORTS) expect(legFuel('busan', p.id) * COIN_PER_FUEL).toBeLessThanOrEqual(MAX_REFUEL);
   });
 
   it('연료 0 — 예인: 가장 가까운 항구, 입항 +1, 거래 불가·급유만, 로그 towed', () => {
@@ -221,8 +227,8 @@ describe('연료', () => {
     expect(r.state.cash).toBe(s.cash); // 무료, 수익 0
     expect(buy(r.state, 'graphite', 1).reason).toBe('towed_no_trade');
     expect(sell({ ...r.state, cargo: [{ good: 'rice', qty: 1 }] }, 'rice', 1).reason).toBe('towed_no_trade');
-    const f = refuel(r.state, 50);
+    const f = refuel(r.state);
     expect(f.reason).toBeUndefined();
-    expect(f.state.fuel).toBe(50);
+    expect(f.state.fuel).toBe(TANK);
   });
 });

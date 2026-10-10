@@ -19,7 +19,7 @@ export type Action =
   | { type: 'SELL'; good: GoodId; qty: number; fee?: number }
   | { type: 'LOAD'; good: GoodId; qty: number }
   | { type: 'PROCESS'; recipe: Recipe['id'] }
-  | { type: 'REFUEL'; amount?: number }
+  | { type: 'REFUEL' }
   | { type: 'TOW' }
   | { type: 'EVENT_CHOICE'; eventId: EventId; choiceId: string }
   | { type: 'FINISH' };
@@ -152,7 +152,7 @@ export function reduce(state: GameState | null, action: Action): Result {
     case 'PROCESS':
       return process(state, RECIPES.find((r) => r.id === action.recipe)!);
     case 'REFUEL':
-      return refuel(state, action.amount);
+      return refuel(state);
     case 'TOW':
       return tow(state);
     case 'EVENT_CHOICE':
