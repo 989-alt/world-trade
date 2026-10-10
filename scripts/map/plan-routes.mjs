@@ -4,6 +4,7 @@
 // 1) 2px 격자 Dijkstra(8방향 + 출항점은 40px 안 직결 칸). 칸 비용 = 길이 × (1 + K·max(0, C − 해안 거리)/C) — 해안에서 멀수록 싸다.
 //    지나갈 수 있는 칸 = 큰 바다(갇힌 호수 제외)·해안 거리 ≥ TP(출항점 NT px 안은 3)이고, 칸 사이 선분 위 선체(중심·선수·선미 ±MH)가 0.5px 마다 바다.
 // 2) 나무의 갈림점·출항점만 남기고, 그 사이를 탐욕적으로 곧게 편다(선분 위 선체가 바다 ∧ 해안 거리 ≥ min(CL, 원래 길의 최소)).
+//    북극해(y < ARCTIC_Y)는 막는다.
 // 3) 도착점: 꺾은선이 출항점 전에 그 항구 반경에 들면 그 자리, 아니면 핀 0.025 안 큰 바다 중 마지막 꺾임에서 곧장 가는 점
 //    (끝까지 바다인 점 우선, 없으면 반경에 들 때까지 바다인 점) 가운데 해안에서 가장 먼 점.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -15,16 +16,21 @@ const { width: W, height: H, data: land, ocean } = m;
 
 const S = 2; // 격자 간격(px)
 const MH = 28; // 선체 반길이(런타임 HULL_PX). 여유는 비용(K·C)과 CL 로 준다 — 독일 항구 물길이 좁아 더 크게는 못 지난다
-const TP = 12; // 지나갈 칸의 최소 해안 거리(먼 바다는 좁은 목을 피한다 — 8 이면 호주 북동 목에서 실제 조타가 걸렸다)
+const TP = 8; // 지나갈 칸의 최소 해안 거리(출항점 NT px 밖). 12 면 아프리카 서쪽 → 독일 물길이 끊긴다(fix1 실측)
 const NT = 350; // 출항점 근처(px)는 해안 거리 3 까지 허용(부산 만 어귀 10.8px·독일 항구 물길이 좁다)
 const K = 3;
 const C = 48;
 const CL = 30; // 곧게 편 선분의 해안 거리 하한
 const AR = 0.025; // 도착점 반경(비율)
+/**
+ * 북극해 금지 띠(T14 와 같은 정책): 지도 위쪽 y < ARCTIC_Y px(= 0.15, 지도 맨 위 307px)는 뱃길이 지나지 못한다 → 독일은 아프리카를 돈다.
+ * 독일 항구 물길(y ≈ 430~480)과 아프리카 서쪽 바다는 이 띠 아래다. 손 조타는 막지 않는다(뱃길 계획만)
+ */
+const ARCTIC_Y = 0.15 * 2048;
 
 const blocked = (x, y) => {
   const px = Math.floor(x), py = Math.floor(y);
-  return px < 0 || py < 0 || px >= W || py >= H || land[py * W + px] === 1 || ocean[py * W + px] !== 1;
+  return px < 0 || py < ARCTIC_Y || px >= W || py >= H || land[py * W + px] === 1 || ocean[py * W + px] !== 1;
 };
 
 const edt = distanceToBlocked(m);

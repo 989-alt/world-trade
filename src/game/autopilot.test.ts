@@ -14,11 +14,11 @@ const routeLength = (to: (typeof PORTS)[number]['id']) => {
 };
 
 describe('연료 보정(바닷길 기준)', () => {
-  it('12항구 전부 부산 출발 뱃길 연료 ≤ TANK×0.9(270), 최장 = 사우디(T15 새 마스크, 호주를 돈다) = LONGEST_ROUTE', () => {
+  it('12항구 전부 부산 출발 뱃길 연료 ≤ TANK×0.9(270), 최장 = 독일(북극해 금지, 아프리카를 돈다) = LONGEST_ROUTE', () => {
     for (const p of PORTS) expect(fuelCostFor(routeLength(p.id)), p.id).toBeLessThanOrEqual(TANK * 0.9);
     const longest = PORTS.reduce((a, b) => (routeLength(b.id) > routeLength(a.id) ? b : a));
-    expect(longest.id).toBe('saudi');
-    expect(routeLength('saudi')).toBeCloseTo(LONGEST_ROUTE, 4);
+    expect(longest.id).toBe('germany');
+    expect(routeLength('germany')).toBeCloseTo(LONGEST_ROUTE, 4);
   });
 });
 

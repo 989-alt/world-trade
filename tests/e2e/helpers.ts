@@ -60,7 +60,7 @@ export async function sail(page: Page, port: PortId, hooks: { during?: () => Pro
   const t0 = Date.now();
   await hooks.during?.();
   for (;;) {
-    if (Date.now() - t0 > 240_000) throw new Error(`sailTo ${port}: 4분 초과`);
+    if (Date.now() - t0 > 180_000) throw new Error(`sailTo ${port}: 3분 초과`);
     await answerEvent(page);
     const r = await page.evaluate(() => Promise.race([(window as unknown as W).__sail, new Promise((res) => setTimeout(() => res(null), 200))]));
     if (r === 'ok') break;

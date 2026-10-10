@@ -177,9 +177,9 @@ function landUntilDock(path: Pos[], to: string): Pos | null {
 const pathLand = (path: Pos[]) => path.slice(1).map((p, i) => segmentOnLand(mask, path[i], p)).find((l) => l) ?? null;
 
 describe('M1·M7·M8 뱃길 (mask-worldmap.png)', () => {
-  it('M1 PNG 를 제대로 풀었다: 3072×2048 = 월드 크기, 육지 2,357,072 픽셀(PIL 실측)', () => {
+  it('M1 PNG 를 제대로 풀었다: 3072×2048 = 월드 크기, 육지 1,870,255 픽셀(fix1 마스크)', () => {
     expect([MASK_W, MASK_H]).toEqual([WORLD_W, WORLD_H]);
-    expect(mask.data.reduce((n, v) => n + v, 0)).toBe(2357072);
+    expect(mask.data.reduce((n, v) => n + v, 0)).toBe(1870255);
     // 검사기가 육지를 실제로 잡는지: 부산 → 독일 직선은 유라시아를 지난다
     expect(segmentOnLand(mask, PORT_BY_ID.busan.mapPos, PORT_BY_ID.germany.mapPos)).not.toBeNull();
   });
@@ -216,14 +216,15 @@ describe('M1·M7·M8 뱃길 (mask-worldmap.png)', () => {
   });
 });
 
-/** 뱃길 밖 자유 항해 위치(seed 15): 큰 바다·항구 반경 밖이고 8방향 중 하나 이상으로 선체 3점이 놓이는 점. validate-routes.mjs 와 같은 규칙 */
+/** 뱃길 밖 자유 항해 위치(seed 15): 큰 바다·항구 반경 밖이고 8방향 중 서로 다른 두 축 이상으로 선체 3점이 놓이는 점. validate-routes.mjs 와 같은 규칙 */
 function freeSailPositions(n: number): Pos[] {
   const r = createRng(15);
   const out: Pos[] = [];
   while (out.length < n) {
     const p = { x: r.next(), y: r.next() };
     if (!isOcean(mask, p.x, p.y) || nearestPortWithin(p)) continue;
-    if ([0, 1, 2, 3, 4, 5, 6, 7].every((k) => hullOnLand(mask, p, { x: Math.cos((k * Math.PI) / 4), y: Math.sin((k * Math.PI) / 4) }))) continue;
+    const ok = [0, 1, 2, 3, 4, 5, 6, 7].filter((k) => !hullOnLand(mask, p, { x: Math.cos((k * Math.PI) / 4), y: Math.sin((k * Math.PI) / 4) }));
+    if (!ok.some((a) => ok.some((b) => (a - b) % 4 !== 0))) continue; // 한 축(예: 지도 맨 위 가장자리에서 동·서)으로만 놓이는 자리는 배가 돌 수도, 갈 수도 없다
     out.push(p);
   }
   return out;

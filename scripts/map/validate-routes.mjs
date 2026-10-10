@@ -121,14 +121,15 @@ free.forEach((p, i) => towCheck(p, `free#${i}`));
 towCheck({ x: 0.5305, y: 0.5441 }, 'QA-regression');
 console.log(`tow: ${towN} route samples + ${free.length} free positions (seed 15) + QA (0.5305, 0.5441)`);
 
-/** 뱃길 밖 자유 항해 위치: 큰 바다·항구 반경 밖이고 8방향 중 하나 이상으로 선체 3점이 놓이는 점(배가 실제로 있을 수 있는 자리). collision.test 와 같은 규칙 */
+/** 뱃길 밖 자유 항해 위치: 큰 바다·항구 반경 밖이고 8방향 중 서로 다른 두 축 이상으로 선체 3점이 놓이는 점(배가 실제로 있고 돌 수 있는 자리). collision.test 와 같은 규칙 */
 function freeSailPositions(rng, n) {
   const r = rng(15);
   const out = [];
   while (out.length < n) {
     const p = { x: r.next(), y: r.next() };
     if (!col.isOcean(m, p.x, p.y) || layout.nearestPortWithin(p)) continue;
-    if ([0, 1, 2, 3, 4, 5, 6, 7].every((k) => col.hullOnLand(m, p, { x: Math.cos((k * Math.PI) / 4), y: Math.sin((k * Math.PI) / 4) }))) continue;
+    const ok = [0, 1, 2, 3, 4, 5, 6, 7].filter((k) => !col.hullOnLand(m, p, { x: Math.cos((k * Math.PI) / 4), y: Math.sin((k * Math.PI) / 4) }));
+    if (!ok.some((a) => ok.some((b) => (a - b) % 4 !== 0))) continue; // 한 축(예: 지도 맨 위 가장자리에서 동·서)으로만 놓이는 자리는 배가 돌 수도, 갈 수도 없다
     out.push(p);
   }
   return out;

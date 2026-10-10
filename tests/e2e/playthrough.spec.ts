@@ -36,7 +36,8 @@ async function expectCornersOnMap(page: Page, name: string) {
     expect(c.inMap, `${name} ${c.screen}`).toBe(true);
     expect(c.diff, `${name} ${c.screen} ${c.shotRgb}`).toBeLessThanOrEqual(40);
   }
-  if (name !== 'busan') expect(land.frac, `${name} 배 아래 시각 육지`).toBeLessThanOrEqual(0.05); // 부산은 출항 직후(항구 안)
+  // 부산은 출항 직후(항구 안). soft: 넘어도 나머지 측정(LA 사진 등)은 마저 하고 실패로 남긴다
+  if (name !== 'busan') expect.soft(land.frac, `${name} 배 아래 시각 육지`).toBeLessThanOrEqual(0.05);
   return v;
 }
 
@@ -278,15 +279,14 @@ test.describe.serial('완주 seed 42', () => {
   });
 });
 
-test('예인 — 급유 없이 두 구간(부산→칠레, 칠레→독일) 연속 항해 → 연료 0 → 예인 연출 → 가장 가까운 항구, 거래 없음·급유만', async ({ page }) => {
+test('예인 — 급유 없이 두 구간(부산→칠레, 칠레→부산) 연속 항해 → 연료 0 → 예인 연출 → 가장 가까운 항구, 거래 없음·급유만', async ({ page }) => {
   await newGame(page);
   await leave(page);
   await sail(page, 'chile', { arrived: () => expectCornersOnMap(page, 'chile') });
   await leave(page); // 칠레에서 급유하지 않는다
   await page.evaluate(() => {
     const w = window as unknown as { __ktrade: { sailTo(p: string): Promise<void> }; __sail: Promise<string> };
-    // T15: 연료 잣대가 219/단위로 바뀌어 칠레→부산(0.71)은 연료가 남는다 → 칠레→독일(부산 앞 갈림점까지 되짚고 1.17 더)로 바닥낸다
-    w.__sail = w.__ktrade.sailTo('germany').then(() => 'ok', (e: Error) => `err:${e.message}`);
+    w.__sail = w.__ktrade.sailTo('busan').then(() => 'ok', (e: Error) => `err:${e.message}`);
   });
   const t0 = Date.now();
   let fuelSeen = (await state(page)).fuel;
@@ -361,7 +361,7 @@ test('손 조타 짧은 뱃길(부산→상하이, 출항점에서 0.04 미만) 
   await page.waitForTimeout(500); // 조작 테스트와 같은 이유(출항 직후 같은 프레임 keydown)
   const exit = (await state(page)).shipPos;
   const shanghai = PORT_BY_ID.shanghai.mapPos;
-  // T15: 상하이 핀은 만 서쪽 육지 위라 ← 만으로는 반경(0.028) 앞 선수가 해안에 걸린다(실측 0.0375) → ← 2초(반 바퀴 돌고 해안 앞까지) 뒤 ↖
+  // T15: 상하이 핀은 만 서쪽 육지 위라 ← 만으로는 반경(0.028) 앞 선수가 해안에 걸린다(fix1 실측 0.0362) → ← 2초(반 바퀴 돌고 해안 앞까지) 뒤 ↖
   await page.keyboard.down('ArrowLeft');
   await page.waitForTimeout(2000);
   await page.keyboard.down('ArrowUp');
@@ -484,7 +484,7 @@ test('항해 연출(T14·T15) — 카메라 경계(부산·LA)·화면 고정 UI
   console.log(JSON.stringify({ v12: shots }));
   expect(shots).toHaveLength(6);
   expect(new Set(shots.map((s) => `${s.ship.x},${s.ship.y}`)).size).toBe(6); // 배가 실제로 움직이는 중에 찍었다
-  for (const s of shots) expect(s.frac, `shot ${s.i}`).toBeLessThanOrEqual(0.05);
+  for (const s of shots) expect.soft(s.frac, `shot ${s.i}`).toBeLessThanOrEqual(0.05); // soft: LA 측정까지 마저 한다
 
   await leave(page);
   await sail(page, 'la', {
