@@ -1,21 +1,21 @@
 // 12 뱃길 계획: 항해 마스크(mask-worldmap.png, 1 = 육지) 위에서 부산 출항점을 뿌리로 한 최단 바닷길 나무를 만들어
 // src/game/autopilot.ts 의 ROUTES 블록을 다시 쓴다. 검증은 validate-routes.mjs.
 //   node scripts/map/plan-routes.mjs
-// 1) 2px 격자 Dijkstra(8방향 + 출항점은 40px 안 직결 칸). 칸 비용 = 길이 × (1 + K·max(0, C − 해안 거리)/C) — 해안에서 멀수록 싸다.
+// 1) 2px 격자 Dijkstra(16방향 + 출항점은 40px 안 직결 칸). 칸 비용 = 길이 × (1 + K·max(0, C − 해안 거리)/C) — 해안에서 멀수록 싸다.
 //    지나갈 수 있는 칸 = 큰 바다(갇힌 호수 제외)·해안 거리 ≥ TP(출항점 NT px 안은 3)이고, 칸 사이 선분 위 선체(중심·선수·선미 ±MH)가 0.5px 마다 바다.
 // 2) 나무의 갈림점·출항점만 남기고, 그 사이를 탐욕적으로 곧게 편다(선분 위 선체가 바다 ∧ 해안 거리 ≥ min(CL, 원래 길의 최소)).
 //    북극해(y < ARCTIC_Y)는 막는다.
-// 3) 도착점: 꺾은선이 출항점 전에 그 항구 반경에 들면 그 자리, 아니면 핀 0.025 안 큰 바다 중 마지막 꺾임에서 곧장 가는 점
-//    (끝까지 바다인 점 우선, 없으면 반경에 들 때까지 바다인 점) 가운데 해안에서 가장 먼 점.
+// 3) 도착점: 꺾은선이 출항점 전에 그 항구 반경에 들면 그 자리, 아니면 핀 0.025 안 큰 바다 중 마지막 꺾임에서 반경에 들 때까지
+//    선체가 바다로 곧장 가는 점 가운데, 배가 서는 자리(반경 진입점)가 해안에서 가장 먼 점.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { NAV_MASK, ROOT, decodeMask, distanceToBlocked, load } from './lib.mjs';
 
-const [{ withOcean }, { exitPoint, nearestPortWithin }, { PORTS }] = await load('/src/game/collision.ts', '/src/game/ports-layout.ts', '/src/content/ports.ts');
+const [{ withOcean, HULL_PX }, { exitPoint, nearestPortWithin }, { PORTS }] = await load('/src/game/collision.ts', '/src/game/ports-layout.ts', '/src/content/ports.ts');
 const m = withOcean(decodeMask(NAV_MASK));
 const { width: W, height: H, data: land, ocean } = m;
 
 const S = 2; // 격자 간격(px)
-const MH = 28; // 선체 반길이(런타임 HULL_PX). 여유는 비용(K·C)과 CL 로 준다 — 독일 항구 물길이 좁아 더 크게는 못 지난다
+const MH = HULL_PX; // 선체 반길이(런타임 collision.ts HULL_PX). 여유는 비용(K·C)과 CL 로 준다 — 독일 항구 물길이 좁아 더 크게는 못 지난다
 const TP = 8; // 지나갈 칸의 최소 해안 거리(출항점 NT px 밖). 12 면 아프리카 서쪽 → 독일 물길이 끊긴다(fix1 실측)
 const NT = 350; // 출항점 근처(px)는 해안 거리 3 까지 허용(부산 만 어귀 10.8px·독일 항구 물길이 좁다)
 const K = 3;
@@ -114,8 +114,8 @@ const pop = () => {
 const src = cellOf(EX.busan);
 dist[src] = 0;
 push(0, src);
-// 이웃 = 8방향 칸 + 출항점은 40px 안에서 선체가 곧장 닿는 칸 전부(좁은 물길의 출항점은 8방향 어디로도 바로 못 나간다 — 독일)
-const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+// 이웃 = 16방향 칸(8방향만으로는 대한해협~남중국해처럼 좁고 굽은 물길에서 선체 3점이 꺾이지 못한다, fix2 실측) + 출항점은 40px 안에서 선체가 곧장 닿는 칸 전부(좁은 물길의 출항점은 8방향 어디로도 바로 못 나간다 — 독일)
+const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1], [2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]];
 const links = new Map();
 const link = (a, b) => (links.get(a) ?? links.set(a, []).get(a)).push(b);
 for (const [c] of exitAt) {
@@ -206,13 +206,14 @@ for (const [id, p] of Object.entries(gp)) {
 
 /* 3) 도착점: 자동 조타는 입항 반경에 드는 순간 멈춘다 → 마지막 마디는 반경에 들 때까지만 선체 검사(validate-routes 와 같은 규칙).
    끝까지 곧장 갈 수 있는 점을 먼저, 그다음 해안에서 먼 점 */
-const okUntilDock = (a, b, id) => {
+/** a→b 를 0.5px 마다 선체 검사하다 id 반경에 든 첫 표본(px)을 돌려준다. 그 전에 걸리면 null, 끝까지 안 들면 b */
+const entryUntilDock = (a, b, id) => {
   const A = toPx(a), B = toPx(b), dx = B.x - A.x, dy = B.y - A.y, L = Math.hypot(dx, dy), n = Math.ceil(L * 2);
   for (let i = 0; i <= n; i++) {
-    if (poseBad(A.x + (dx * i) / n, A.y + (dy * i) / n, dx / L, dy / L)) return false;
-    if (nearestPortWithin({ x: a.x + ((b.x - a.x) * i) / n, y: a.y + ((b.y - a.y) * i) / n })?.id === id) return true;
+    if (poseBad(A.x + (dx * i) / n, A.y + (dy * i) / n, dx / L, dy / L)) return null;
+    if (nearestPortWithin({ x: a.x + ((b.x - a.x) * i) / n, y: a.y + ((b.y - a.y) * i) / n })?.id === id) return { x: A.x + (dx * i) / n, y: A.y + (dy * i) / n };
   }
-  return true;
+  return B;
 };
 /** 꺾은선이 출항점에 닿기 전에 그 항구 반경에 들면 그 자리(2px 더 안쪽)가 도착점 — 자동 조타는 거기서 선다(독일: 좁은 목 출항점) */
 const entry = (r, id) => {
@@ -242,15 +243,15 @@ for (const p of PORTS) {
     for (let x = Math.floor((px - AR) * W); x <= (px + AR) * W; x++) {
       const q = { x: r4((x + 0.5) / W), y: r4((y + 0.5) / H) };
       if (Math.hypot(q.x - px, q.y - py) > AR || blocked(q.x * W, q.y * H) || nearestPortWithin(q)?.id !== p.id) continue;
-      const c = clear(q.x * W, q.y * H);
-      if (c + 1000 <= bs || !okUntilDock(last, q, p.id)) continue;
-      const sc = c + (ok(last, q) ? 1000 : 0);
+      // 배가 서는 자리(반경 진입점)의 해안 거리가 가장 큰 점 — 좁은 항구(독일)에서 배 그림이 해안에 덜 걸리게. 같으면 도착점 자체의 해안 거리
+      const e = entryUntilDock(last, q, p.id);
+      const sc = e ? clear(e.x, e.y) * 1000 + clear(q.x * W, q.y * H) : -1;
       if (sc > bs) [best, bs] = [q, sc];
     }
   if (!best) throw new Error(`도착점 없음: ${p.id}`);
   if (p.id === 'busan') ROUTES.busan = [P0, best];
   else ROUTES[p.id].push(best);
-  console.error(`arrival ${p.id} ${bs >= 1000 ? 'straight' : 'until-dock'} clearance ${(bs % 1000).toFixed(1)}px, ${ROUTES[p.id].length} points`);
+  console.error(`arrival ${p.id}: stop clearance ${Math.floor(bs / 1000)}px, ${ROUTES[p.id].length} points`);
 }
 
 /* autopilot.ts ROUTES 블록 교체(키 순서 = PORTS) */

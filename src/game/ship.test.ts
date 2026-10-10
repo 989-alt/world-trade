@@ -31,12 +31,12 @@ describe('M1 월드·배 크기', () => {
     expect(PORT_BY_ID.busan.mapPos.x * WORLD_W).toBeCloseTo(1474.56, 9);
     expect(PORT_BY_ID.busan.mapPos.y * WORLD_H).toBeCloseTo(675.84, 9);
   });
-  it('배 그림 배율 = 72 / 옆모습(ship-e) 너비 — 8방위 같은 배율이라 선체 길이가 72 월드px', async () => {
+  it('배 그림 배율 = 56 / 옆모습(ship-e) 너비 — 8방위 같은 배율이라 선체 길이가 56 월드px', async () => {
     const bin = Uint8Array.from(atob(shipE.split(',')[1]), (ch) => ch.charCodeAt(0));
     const w = new DataView(bin.buffer).getUint32(16);
     expect(w).toBe(365);
     const src = (await import('./SailingScene.ts?raw')).default;
-    expect(src).toContain('const SHIP_PX = 72;');
+    expect(src).toContain('const SHIP_PX = 56;');
     expect(src).toContain("this.ship.setScale(SHIP_PX / (this.textures.get(spriteKey('e')).getSourceImage() as HTMLImageElement).width);");
   });
 });

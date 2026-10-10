@@ -15,14 +15,14 @@ export const MAX_FACTORY_LEVEL = 3;
 /* ── 연료 ──────────────────────────────────────────────
  * 소비: 지도 비율 거리 1 당 FUEL_PER_UNIT = floor(270 / 부산 출발 최장 바닷길) → 최장 편도 ≈ 270 ≤ TANK×0.9.
  *   기준은 직선이 아니라 바닷길(game/autopilot.ts ROUTES, scripts/map/plan-routes.mjs 가 생성. 북극해 금지라 독일은 아프리카를 돈다).
- *   T15 fix1 세부 지도(3072×2048) 항해 마스크로 다시 잼: 최장 = 독일 1.0364 → 260 (T14 1.069·252). 261 이면 270.5 로 상한 초과.
- *   부산 출발 뱃길: 상하이 0.0315 ≈ 8, 일본 0.1047 ≈ 27, 베트남 0.2318 ≈ 60, 사우디 0.3196 ≈ 83, LA 0.3679 ≈ 96, 칠레 0.7168 ≈ 186, 브라질 0.9270 ≈ 241.
+ *   T15 fix2 세부 지도(3072×2048) 항해 마스크·배 56px 로 다시 잼: 최장 = 독일 1.0540 → 256 (T14 1.069·252). 257 이면 270.9 로 상한 초과.
+ *   부산 출발 뱃길: 상하이 0.0304 ≈ 8, 일본 0.1136 ≈ 29, 베트남 0.2132 ≈ 55, 사우디 0.3297 ≈ 84, LA 0.3507 ≈ 90, 칠레 0.7053 ≈ 181, 브라질 0.9248 ≈ 237.
  *   검증: game/autopilot.test.ts 가 12항구 전부 ≤ 270, 최장 = LONGEST_ROUTE.
  * 급유: 항구에서 탱크를 가득 채우고 fareTier 정액을 낸다(부산 0 / near 50 / mid 100 / far 150) × 자동화 항만 배수.
  */
 /** 부산 출항점 → 독일 도착점 바닷길 길이(비율 거리) */
-export const LONGEST_ROUTE = 1.0364;
-export const FUEL_PER_UNIT = 260;
+export const LONGEST_ROUTE = 1.054;
+export const FUEL_PER_UNIT = 256;
 
 export const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 export const fuelCostFor = (distance: number) => distance * FUEL_PER_UNIT;

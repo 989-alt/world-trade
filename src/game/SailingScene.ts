@@ -53,8 +53,8 @@ const emit = (name: string, detail: unknown) => window.dispatchEvent(new CustomE
 const toWorld = (p: Pos) => ({ x: p.x * WORLD_W, y: p.y * WORLD_H });
 const token = (name: string) =>
   Phaser.Display.Color.HexStringToColor(getComputedStyle(document.documentElement).getPropertyValue(name).trim()).color;
-/** 배 선체 길이(월드px) = 옆모습(ship-e) 그림 너비. 8방위 그림은 크기가 제각각이라 모두 같은 배율로 줄인다 — 선체 충돌은 collision.ts HULL_PX(±28) */
-const SHIP_PX = 72;
+/** 배 선체 길이(월드px) = 옆모습(ship-e) 그림 너비. 8방위 그림은 크기가 제각각이라 모두 같은 배율로 줄인다 — 선체 충돌은 collision.ts HULL_PX(±22) */
+const SHIP_PX = 56;
 /** 월드 카메라 줌(CSS px 기준): 화면 1280×720 에 월드 1280×720(지도의 42%)이 보인다. 실제 줌 = ZOOM × k(boot.ts, 캔버스 dpr 배수) */
 const ZOOM = 1.0;
 
@@ -97,7 +97,7 @@ export class SailingScene extends Phaser.Scene {
     this.legStart = { ...s.shipPos };
     this.dockAfterCard = false;
 
-    const map = this.add.image(0, 0, 'map').setOrigin(0); // 원본 1536×1024 = 월드 크기
+    const map = this.add.image(0, 0, 'map').setOrigin(0); // 원본 3072×2048 = 월드 크기
     const src = this.textures.get('mask').getSourceImage() as HTMLImageElement;
     const cv = document.createElement('canvas');
     [cv.width, cv.height] = [src.width, src.height];

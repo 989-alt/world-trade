@@ -361,7 +361,7 @@ test('손 조타 짧은 뱃길(부산→상하이, 출항점에서 0.04 미만) 
   await page.waitForTimeout(500); // 조작 테스트와 같은 이유(출항 직후 같은 프레임 keydown)
   const exit = (await state(page)).shipPos;
   const shanghai = PORT_BY_ID.shanghai.mapPos;
-  // T15: 상하이 핀은 만 서쪽 육지 위라 ← 만으로는 반경(0.028) 앞 선수가 해안에 걸린다(fix1 실측 0.0362) → ← 2초(반 바퀴 돌고 해안 앞까지) 뒤 ↖
+  // T15: 상하이 핀은 만 서쪽 육지 위라 ← 만으로는 반경(0.028) 앞 선수가 해안에 걸린다(fix2 실측 0.0343) → ← 2초(반 바퀴 돌고 해안 앞까지) 뒤 ↖
   await page.keyboard.down('ArrowLeft');
   await page.waitForTimeout(2000);
   await page.keyboard.down('ArrowUp');

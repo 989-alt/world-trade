@@ -47,7 +47,7 @@ const c200 = mask200((x, y) => x >= 140 || (y === 20 && x < 20));
 /** 프레임 이동량(부산→LA 25초 속도, 60fps) */
 const FRAME_PX = SPEED_PX / 60;
 
-describe('M4 tryMove (선수 +28·중심 2점, 1px 표본, 선미는 보지 않음)', () => {
+describe('M4 tryMove (선수 +22·중심 2점, 1px 표본, 선미는 보지 않음)', () => {
   it('sea → sea moves exactly by delta', () => {
     const p = { x: g(60.5), y: g(80.5) };
     const n = tryMove(c200, p, { x: g(1), y: g(5) });
@@ -56,17 +56,17 @@ describe('M4 tryMove (선수 +28·중심 2점, 1px 표본, 선미는 보지 않�
   });
 
   it('bow into the coast → stops in place (same object: no slide, no push-out)', () => {
-    expect(HULL_PX).toBe(28);
-    const p = { x: g(111.5), y: g(80.5) }; // 해안(x=140)까지 28.5px: 한 칸 가면 선수가 해안 픽셀
+    expect(HULL_PX).toBe(22);
+    const p = { x: g(117.5), y: g(80.5) }; // 해안(x=140)까지 22.5px: 한 칸 가면 선수가 해안 픽셀
     expect(tryMove(c200, p, { x: g(1), y: 0 })).toBe(p);
-    const q = { x: g(120.5), y: g(80.5) };
+    const q = { x: g(125.5), y: g(80.5) };
     expect(tryMove(c200, q, { x: g(1), y: g(1) })).toBe(q); // 대각선 선수도 걸리고 미끄러지지 않음
     expect(tryMove(c200, p, { x: 0, y: g(1) })).not.toBe(p); // 해안과 나란히는 간다
   });
 
   it('stern on land does not block — the ship pivots and the stern follows the bow', () => {
     const p = { x: g(125.5), y: g(80.5) }; // 해안까지 14.5px
-    expect(tryMove(c200, p, { x: g(-1), y: 0 })).not.toBe(p); // 서쪽으로 돌면 선미(+28)는 육지지만 간다
+    expect(tryMove(c200, p, { x: g(-1), y: 0 })).not.toBe(p); // 서쪽으로 돌면 선미(+22)는 육지지만 간다
     expect(hullOnLand(c200, { x: g(124.5), y: g(80.5) }, { x: -1, y: 0 })).toBe(true); // 3점으로 보면 걸렸을 자리
   });
 
@@ -86,9 +86,9 @@ describe('M4 tryMove (선수 +28·중심 2점, 1px 표본, 선미는 보지 않�
   });
 
   it('a per-frame step toward the coast is allowed until the bow reaches the coast pixel', () => {
-    const p = { x: g(111.2), y: g(80.5) };
-    expect(tryMove(c200, p, { x: g(FRAME_PX), y: 0 }).x).toBeCloseTo(g(111.2 + FRAME_PX), 12); // 선수 139.75 = 바다
-    const q = { x: g(111.6), y: g(80.5) };
+    const p = { x: g(117.2), y: g(80.5) };
+    expect(tryMove(c200, p, { x: g(FRAME_PX), y: 0 }).x).toBeCloseTo(g(117.2 + FRAME_PX), 12); // 선수 139.75 = 바다
+    const q = { x: g(117.6), y: g(80.5) };
     expect(tryMove(c200, q, { x: g(FRAME_PX), y: 0 })).toBe(q); // 선수 140.15 = 해안
   });
 });
@@ -104,14 +104,14 @@ function sailFrames(mk: Mask, from: Pos, dir: Pos, frames: number): Pos {
   return p;
 }
 
-describe('M4 선체 72px · 2점 충돌 — 해협과 해안', () => {
+describe('M4 선체 56px · 2점 충돌 — 해협과 해안', () => {
   it('폭 40px 해협(마스크가 이미 6px 부풀림)은 가운데로 끝까지 지난다', () => {
     const strait = mask200((x, y) => y >= 60 && y < 140 && (x < 80 || x >= 120));
     const end = sailFrames(strait, { x: g(100.5), y: g(185.5) }, { x: 0, y: -1 }, 600); // 333px 북상 시도
-    expect(end.y * 200).toBeLessThan(30); // 해협(y 60~140)을 다 지나 지도 위 끝(선수 28)까지
+    expect(end.y * 200).toBeLessThan(30); // 해협(y 60~140)을 다 지나 지도 위 끝(선수 22)까지
   });
 
-  it('해안 60px 앞에서 해안 쪽으로 몰면 해안 28~29px 앞에서 선체가 걸려 선다', () => {
+  it('해안 60px 앞에서 해안 쪽으로 몰면 해안 22~23px 앞에서 선체가 걸려 선다', () => {
     const start = { x: g(80), y: g(100.5) };
     const end = sailFrames(c200, start, { x: 1, y: 0 }, 1000);
     const gap = 140 - end.x * 200;
@@ -177,9 +177,9 @@ function landUntilDock(path: Pos[], to: string): Pos | null {
 const pathLand = (path: Pos[]) => path.slice(1).map((p, i) => segmentOnLand(mask, path[i], p)).find((l) => l) ?? null;
 
 describe('M1·M7·M8 뱃길 (mask-worldmap.png)', () => {
-  it('M1 PNG 를 제대로 풀었다: 3072×2048 = 월드 크기, 육지 1,870,255 픽셀(fix1 마스크)', () => {
+  it('M1 PNG 를 제대로 풀었다: 3072×2048 = 월드 크기, 육지 2,179,183 픽셀(fix2 마스크)', () => {
     expect([MASK_W, MASK_H]).toEqual([WORLD_W, WORLD_H]);
-    expect(mask.data.reduce((n, v) => n + v, 0)).toBe(1870255);
+    expect(mask.data.reduce((n, v) => n + v, 0)).toBe(2179183);
     // 검사기가 육지를 실제로 잡는지: 부산 → 독일 직선은 유라시아를 지난다
     expect(segmentOnLand(mask, PORT_BY_ID.busan.mapPos, PORT_BY_ID.germany.mapPos)).not.toBeNull();
   });

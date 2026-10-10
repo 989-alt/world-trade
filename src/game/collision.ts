@@ -53,10 +53,10 @@ export function isLand(m: Mask, x: number, y: number): boolean {
 }
 
 /**
- * 선수·선미 = 중심에서 헤딩 방향 ±28 마스크px(월드 = 마스크 크기라 월드px 와 같다). 배 그림 72px 의 끝(36)보다 조금 안쪽.
+ * 선수·선미 = 중심에서 헤딩 방향 ±22 마스크px(월드 = 마스크 크기라 월드px 와 같다). 배 그림 56px 의 끝(28)보다 조금 안쪽.
  * 항해 마스크는 이미 6px 부풀린 육지(선체 폭 여유)라 선체 옆면은 따로 보지 않는다
  */
-export const HULL_PX = 28;
+export const HULL_PX = 22;
 
 /** p 에 헤딩 dir(마스크 픽셀 공간 단위벡터, 0 벡터면 중심만)로 놓인 배의 선수·중심·선미 중 하나라도 육지인가 */
 export function hullOnLand(m: Mask, p: Pos, dir: Pos, half = HULL_PX): boolean {
