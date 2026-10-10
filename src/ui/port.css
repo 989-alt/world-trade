@@ -1,0 +1,168 @@
+/* 항구 마을·부산 공장 — 픽셀 수치는 시안/world-trade/3-게임UI-3항구판정.html·5부산공장.html, 색은 tokens.css 변수만 */
+#ui > .port-ui {
+  --shade: color-mix(in srgb, var(--color-foreground) 28%, transparent);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  font-size: 20px;
+  line-height: 1.4;
+}
+.port-ui > * { pointer-events: auto; }
+/* 항구에 있는 동안 항해 HUD 의 화물칸은 대화창에 가린다 */
+body.port-open .sail-ui .cargo { display: none; }
+
+/* 9-slice — hud.css 와 같은 수치 */
+.port-ui .panel {
+  position: absolute;
+  border-style: solid;
+  border-width: 24px 24px 25px;
+  border-image: url(../../assets/ui/panel.png) 60 60 90 60 fill / 24px 24px 25px stretch;
+  padding: 6px 8px;
+  filter: drop-shadow(0 8px 10px var(--shade));
+}
+.port-ui .btn {
+  --s: 0.18;
+  position: relative;
+  display: block;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  height: calc(407px * var(--s));
+  border-style: solid;
+  border-width: calc(179px * var(--s)) calc(190px * var(--s)) calc(228px * var(--s));
+  border-image: url(../../assets/ui/btn-blue.png) 179 190 228 fill / calc(179px * var(--s)) calc(190px * var(--s)) calc(228px * var(--s)) stretch;
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--color-primary-foreground);
+  text-shadow: 0 2px 0 var(--shade);
+  min-width: 120px;
+}
+.port-ui .btn > span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  transform: translateY(-50%);
+}
+.port-ui .btn.orange { border-image-source: url(../../assets/ui/btn-orange.png); color: var(--color-accent-foreground); text-shadow: none; }
+.port-ui .btn.cream { border-image-source: url(../../assets/ui/btn-cream.png); color: var(--color-foreground); text-shadow: none; }
+.port-ui .btn.sm { --s: 0.15; font-size: 19px; }
+.port-ui .btn:disabled { cursor: default; opacity: 0.5; }
+
+.port-ui .tag {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
+  border-radius: 999px; border: 2px solid var(--color-border); background: var(--color-card);
+  font-size: 15px; font-weight: 700; line-height: 1; white-space: nowrap;
+}
+.port-ui .tag img { width: 22px; height: 22px; }
+.port-ui .tag.imp { background: var(--color-import); color: var(--color-import-foreground); }
+.port-ui .tag.exp { background: var(--color-export); color: var(--color-export-foreground); }
+.port-ui .tag.hid { background: var(--color-hidden); color: var(--color-hidden-foreground); min-width: 64px; justify-content: center; }
+.port-ui .tag.now { background: var(--color-accent); color: var(--color-accent-foreground); }
+.port-ui .tag.ok { background: var(--color-correct); color: var(--color-correct-foreground); }
+.port-ui .tag.reveal { background: var(--color-wrong); color: var(--color-wrong-foreground); }
+.port-ui .tag.wait { color: var(--color-muted-foreground); }
+
+/* 리본 이름표 */
+.port-ui .ribbon {
+  height: 64px; padding: 0 30px 0 56px;
+  background: url(../../assets/ui/ribbon.png) no-repeat; background-size: 100% 100%;
+  display: inline-flex; align-items: center;
+  color: var(--color-primary-foreground); font-family: var(--font-display); font-size: 24px; line-height: 1;
+  text-shadow: 0 2px 0 var(--shade); filter: drop-shadow(0 6px 6px var(--shade));
+}
+.port-ui .ribbon.name { position: absolute; left: 20px; top: 108px; }
+
+/* 시세 패널 */
+.port-ui .prices { left: 20px; top: 186px; width: 320px; display: grid; gap: 8px; z-index: 1; }
+.port-ui .rows { display: grid; gap: 8px; max-height: 120px; overflow-y: auto; }
+.port-ui .row {
+  display: flex; align-items: center; gap: 8px; min-height: 40px; height: 40px; width: 100%;
+  border: 0; background: none; padding: 0 2px; font: inherit; color: inherit; text-align: left; cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.port-ui .row.on { outline: 3px solid var(--color-ring); outline-offset: 1px; }
+.port-ui .row.off { opacity: 0.5; cursor: not-allowed; }
+.port-ui .row .n { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.port-ui .row .p {
+  margin-left: auto; min-width: 44px; height: 32px; padding: 0 10px; display: grid; place-items: center;
+  background: var(--color-hidden); color: var(--color-hidden-foreground); border-radius: 8px;
+  font-family: var(--font-display); font-size: 20px; line-height: 1;
+}
+.port-ui .row .ic { width: 40px; height: 40px; }
+.port-ui .prices .row:last-child .btn { min-width: 84px; }
+.port-ui .prices > .row { position: relative; }
+.port-ui .tip { position: absolute; left: 0; right: 0; top: 100%; font-size: 14px; color: var(--color-muted-foreground); }
+
+/* 출항·머물기 */
+.port-ui .acts { right: 20px; top: 108px; display: flex; gap: 10px; }
+
+/* 관세사 대화창 */
+.port-ui .speech {
+  position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); width: 1100px; height: 320px;
+  background: url(../../assets/ui/speech-frame.png) no-repeat; background-size: 100% 100%;
+  filter: drop-shadow(0 10px 12px var(--shade));
+}
+.port-ui .speech .face { position: absolute; left: 46px; top: 42px; width: 188px; height: 188px; border-radius: 50%; object-fit: cover; object-position: top; }
+.port-ui .speech .body { position: absolute; left: 330px; top: 24px; width: 728px; height: 232px; display: grid; align-content: center; gap: 10px; }
+.port-ui .speech .tags { display: flex; gap: 8px; align-items: center; }
+.port-ui .q { margin: 0; font-family: var(--font-display); font-size: 30px; line-height: 1.25; }
+.port-ui .fb { margin: 0; font-size: 16px; line-height: 1.35; }
+.port-ui .fb small { color: var(--color-muted-foreground); font-size: 14px; }
+.port-ui .warn {
+  margin: 0; padding: 4px 12px; border: 2px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-wrong); color: var(--color-wrong-foreground); font-weight: 700; font-size: 17px;
+}
+.port-ui .choices { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.port-ui .choices.n2 { grid-template-columns: repeat(2, 1fr); }
+.port-ui .tile { --s: 0.3; min-width: 0; }
+.port-ui .tile > span { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 17px; letter-spacing: -0.3px; }
+.port-ui .choices.n2 .tile > span { font-size: 26px; }
+.port-ui .tile img { width: 38px; height: 38px; display: block; }
+.port-ui .tile.wrong { outline: 3px solid var(--color-wrong); outline-offset: -6px; border-radius: var(--radius-md); }
+
+/* 거래 칸 */
+.port-ui .trade { display: flex; align-items: center; gap: 16px; }
+.port-ui .good-ic { width: 56px; height: 56px; }
+.port-ui .stepper { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 26px; }
+.port-ui .stepper b { font-weight: 400; min-width: 32px; text-align: center; }
+.port-ui .step {
+  width: 44px; height: 44px; border: 3px solid var(--color-border); border-radius: 50%;
+  background: var(--color-card); color: var(--color-foreground); font: inherit; line-height: 1; cursor: pointer;
+}
+.port-ui .step:disabled { opacity: 0.4; cursor: default; }
+.port-ui .sum { display: grid; gap: 2px; font-family: var(--font-display); font-size: 24px; line-height: 1; }
+.port-ui .sum span { display: flex; align-items: center; gap: 6px; }
+.port-ui .sum img { width: 32px; height: 32px; }
+.port-ui .sum small { font-family: var(--font-body); font-size: 15px; font-weight: 700; color: var(--color-wrong); }
+.port-ui .trade .btn { margin-left: auto; }
+.port-ui .home-trade { left: 20px; bottom: 20px; width: 400px; }
+.port-ui .home-trade .trade { gap: 10px; }
+
+/* 부산 공장 */
+.port-ui .factory { right: 20px; bottom: 20px; width: 860px; display: grid; padding: 4px 16px 12px; }
+.port-ui .factory .head { display: flex; align-items: center; gap: 12px; margin: -4px 0 4px -40px; }
+.port-ui .badge {
+  height: 48px; min-width: 110px; padding: 0 16px; display: grid; place-items: center;
+  background: url(../../assets/ui/badge.png) no-repeat center / 100% 100%;
+  font-family: var(--font-display); font-size: 20px; line-height: 1;
+}
+.port-ui .recipe { display: grid; grid-template-columns: 1.6fr 32px 1fr 150px; align-items: center; gap: 12px; padding: 6px 0; }
+.port-ui .recipe + .recipe { border-top: 3px dotted var(--color-hidden); }
+.port-ui .recipe .ins { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.port-ui .recipe .arrow { font-family: var(--font-display); text-align: center; color: var(--color-muted-foreground); }
+.port-ui .recipe .btn { min-width: 0; }
+.port-ui .chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px;
+  border: 2px solid var(--color-border); border-radius: 999px; background: var(--color-card);
+  font-size: 17px; font-weight: 700; line-height: 1; white-space: nowrap;
+}
+.port-ui .chip img { width: 26px; height: 26px; }
+.port-ui .chip.lack { border-color: var(--color-wrong); color: var(--color-wrong); border-style: dashed; }
+.port-ui .recipe.off .arrow, .port-ui .recipe.off .chip:not(.lack) { opacity: 0.5; }
