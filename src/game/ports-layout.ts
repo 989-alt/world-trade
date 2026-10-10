@@ -16,6 +16,12 @@ export function nearestPortWithin(pos: Pos, r = DOCK_RADIUS): Port | null {
   return best;
 }
 
+/** 대화창을 닫은 뒤 배 위치: 출항(depart)일 때만 항구 반경 밖 출항점으로. 무전·일지 닫기는 제자리(같은 객체) */
+export function posAfterDialog(pos: Pos, m: Mask, depart: boolean): Pos {
+  const near = depart ? nearestPortWithin(pos) : null;
+  return near ? exitPoint(near, m) : pos;
+}
+
 /** 출항 위치: 반경 1.5배 원 위에서 큰 바다(갇힌 호수 제외)이고 어떤 항구 반경에도 들지 않는 첫 점(동쪽부터 15°씩). 없으면 핀 자리 */
 export function exitPoint(port: Port, m: Mask): Pos {
   for (let a = 0; a < 360; a += 15) {

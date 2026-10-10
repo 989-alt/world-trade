@@ -3,7 +3,7 @@ import type { PortId } from '../content/types';
 import { PORT_BY_ID, PORTS, REFUEL_PRICE, START_CASH, START_FUEL } from '../content/ports';
 import { RECIPES } from '../content/recipes';
 import {
-  CARGO_CAP, FUEL_PER_UNIT, MAX_LEG_FUEL, MAX_REFUEL, PORT_CALLS, TANK,
+  CARGO_CAP, FUEL_PER_UNIT, LONGEST_ROUTE, MAX_LEG_FUEL, MAX_REFUEL, PORT_CALLS, TANK,
   buy, dist, factoryLevelFor, fuelCostFor, load, moveShip, priceAt, process, refuel, sell, tow,
 } from './economy';
 import { newGame, reduce } from './state';
@@ -160,11 +160,12 @@ describe('공장', () => {
 });
 
 describe('연료', () => {
-  it('소비: 부산에서 가장 먼 직선 편도(칠레) ≈ 290 ≤ TANK', () => {
-    expect(FUEL_PER_UNIT).toBe(Math.floor(290 / dist(PORT_BY_ID.busan.mapPos, PORT_BY_ID.chile.mapPos)));
-    expect(MAX_LEG_FUEL).toBe(legFuel('busan', 'chile'));
-    expect(MAX_LEG_FUEL).toBeLessThanOrEqual(290);
-    expect(MAX_LEG_FUEL).toBeGreaterThan(285);
+  it('소비: 부산 출발 최장 바닷길(독일, LONGEST_ROUTE) ≈ 270 ≤ TANK×0.9, 직선 편도는 전부 그 안', () => {
+    expect(FUEL_PER_UNIT).toBe(Math.floor((TANK * 0.9) / LONGEST_ROUTE));
+    expect(MAX_LEG_FUEL).toBe(fuelCostFor(LONGEST_ROUTE));
+    expect(MAX_LEG_FUEL).toBeLessThanOrEqual(270);
+    expect(MAX_LEG_FUEL).toBeGreaterThan(265);
+    for (const p of PORTS) expect(legFuel('busan', p.id)).toBeLessThan(MAX_LEG_FUEL);
   });
 
   it('항해 — 이동 거리만큼 연료 소비, 모자라면 남은 만큼만 가고 0', () => {

@@ -9,7 +9,7 @@ import { setDialogOpen } from './boot';
 import { maskFromRGBA, tryMove, withOcean, type Mask } from './collision';
 import { TouchPad } from './dpad';
 import { enteredZones } from './eventZones';
-import { exitPoint, nearestPortWithin } from './ports-layout';
+import { nearestPortWithin, posAfterDialog } from './ports-layout';
 import { HEADINGS, WORLD_H, WORLD_W, dirFromKeys, headingOf, pxDist, spriteKey, stepDelta, type Heading, type Pos } from './ship';
 
 /** 한 판 상태 저장소: dispatch → 순수 리듀서, subscribe → Preact HUD */
@@ -43,8 +43,10 @@ export function startSailing(state: GameState): void {
 }
 /** 항구 반경 안에서만 입항(Enter·스페이스·닻·「입항」 버튼 공용) */
 export const requestDock = () => active?.dock();
-/** 다이얼로그(항구·무전)가 닫힐 때 부른다. 항구 반경 안이면 바로 다시 입항되지 않게 반경 밖 바다로 옮긴다 */
-export const resumeSailing = () => active?.resumeFromDialog();
+/** 무전 카드·일지가 닫힐 때: 배는 제자리에서 다시 움직인다 */
+export const resumeSailing = () => active?.resumeFromDialog(false);
+/** 항구에서 출항할 때: 바로 다시 입항되지 않게 반경 밖 출항점으로 옮긴 뒤 재개 */
+export const departPort = () => active?.resumeFromDialog(true);
 
 const emit = (name: string, detail: unknown) => window.dispatchEvent(new CustomEvent(name, { detail }));
 const toWorld = (p: Pos) => ({ x: p.x * WORLD_W, y: p.y * WORLD_H });
@@ -114,10 +116,12 @@ export class SailingScene extends Phaser.Scene {
     this.pad = new TouchPad(this, () => this.dock());
 
     installAutopilot({
-      // 가장 가까운 항구(방금 떠난 곳)의 출항점에서 고정 뱃길을 따라간다
+      // 방금 떠난 항구(마지막 depart 로그)의 출항점에서 고정 뱃길을 따라간다. 부산 출항점은 일본 핀이 더 가까워 거리로 고르면 안 된다
       sailTo: (port) =>
         new Promise((resolve, reject) => {
-          const from = nearestPort(gameStore.get()!.shipPos).id;
+          const s = gameStore.get()!;
+          const dep = [...s.log].reverse().find((e) => e.type === 'depart');
+          const from = dep?.type === 'depart' ? dep.port : nearestPort(s.shipPos).id;
           this.autopilot = { port, path: routeBetween(from, port), i: 0, resolve, reject };
         }),
       dock: () => this.dock(),
@@ -199,11 +203,11 @@ export class SailingScene extends Phaser.Scene {
     this.openDialog('ktrade:docked', { port: port.id });
   }
 
-  resumeFromDialog() {
+  resumeFromDialog(depart: boolean) {
     const s = gameStore.get();
     if (!s || !this.mask || s.stage !== 'main' || s.location !== 'sea') return;
-    const near = nearestPortWithin(s.shipPos);
-    if (near) gameStore.set({ ...s, shipPos: exitPoint(near, this.mask) });
+    const pos = posAfterDialog(s.shipPos, this.mask, depart);
+    if (pos !== s.shipPos) gameStore.set({ ...s, shipPos: pos });
     this.syncShip();
     setDialogOpen(false);
     this.scene.resume();

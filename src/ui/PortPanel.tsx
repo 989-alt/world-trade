@@ -8,7 +8,7 @@ import { canMove, flagOwnSpecialty, startJudgment, type JudgmentSession } from '
 import type { Log } from '../engine/log';
 import { createRng, type Rng } from '../engine/rng';
 import type { GameState, LogInput, Result } from '../engine/types';
-import { resumeSailing, type GameStore } from '../game/SailingScene';
+import { departPort, type GameStore } from '../game/SailingScene';
 import { FactoryPanel } from './FactoryPanel';
 import { JudgmentDialog, priceLabel, type Entry } from './JudgmentDialog';
 import { RefuelPanel } from './RefuelPanel';
@@ -45,12 +45,12 @@ export function portRows(state: GameState): Row[] {
   return [...buys, ...sells];
 }
 
-/** 출항: LEAVE_PORT → 항구 화면 닫기 → 항해 재개(배는 항구 반경 바로 밖, SailingScene.resumeFromDialog) */
+/** 출항: LEAVE_PORT → 항구 화면 닫기 → 항해 재개(배는 항구 반경 바로 밖, SailingScene.departPort) */
 export function leavePort(store: Pick<GameStore, 'dispatch'>, close: () => void): Result {
   const r = store.dispatch({ type: 'LEAVE_PORT' });
   if (r.reason) return r;
   close();
-  resumeSailing();
+  departPort();
   return r;
 }
 

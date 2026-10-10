@@ -13,18 +13,22 @@ export const FACTORY_THRESHOLDS = [1500, 3500] as const;
 export const MAX_FACTORY_LEVEL = 3;
 
 /* ── 연료 ──────────────────────────────────────────────
- * 소비: 지도 비율 거리 1 당 FUEL_PER_UNIT = floor(290 / 부산→칠레 직선 0.6044) = 479 → 칠레 편도 ≈ 289.5 ≤ TANK(300). (480 이면 290.1 로 상한 초과)
- *   부산→상하이 0.0566 ≈ 27, 사우디 0.2555 ≈ 122, LA 0.2717 ≈ 130.
+ * 소비: 지도 비율 거리 1 당 FUEL_PER_UNIT = floor(270 / 부산→독일 바닷길 1.0529) = 256 → 독일 편도 ≈ 269.5 ≤ TANK×0.9(270). (257 이면 270.6 로 상한 초과)
+ *   기준은 직선이 아니라 바닷길(game/autopilot.ts ROUTES, 아프리카를 도는 독일이 최장). 직선 기준 479 였을 때 독일 뱃길 504 > TANK 라 예인 없이는 못 갔다.
+ *   부산 출발 뱃길: 상하이 0.0809 ≈ 21, 사우디 0.3569 ≈ 91, LA 0.3309 ≈ 85, 칠레 0.6627 ≈ 170, 브라질 0.8846 ≈ 226.
+ *   검증: game/autopilot.test.ts 가 12항구 전부 ≤ 270, 최장 = LONGEST_ROUTE.
  * 급유: 항구에서 탱크를 가득 채우고 fareTier 정액을 낸다(부산 0 / near 50 / mid 100 / far 150) × 자동화 항만 배수.
  */
-export const FUEL_PER_UNIT = 479;
+/** 부산 출항점 → 독일 도착점 바닷길 길이(비율 거리) */
+export const LONGEST_ROUTE = 1.0529;
+export const FUEL_PER_UNIT = 256;
 
 export const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 export const fuelCostFor = (distance: number) => distance * FUEL_PER_UNIT;
 
 const HOME = PORT_BY_ID.busan;
-/** 부산에서 가장 먼 항구까지 직선 편도 연료 */
-export const MAX_LEG_FUEL = Math.max(...PORTS.map((p) => fuelCostFor(dist(HOME.mapPos, p.mapPos))));
+/** 부산에서 가장 먼 항구까지 편도 연료(바닷길 기준. 직선보다 길어 직선 편도도 이 안에 든다) */
+export const MAX_LEG_FUEL = Math.max(fuelCostFor(LONGEST_ROUTE), ...PORTS.map((p) => fuelCostFor(dist(HOME.mapPos, p.mapPos))));
 /** 한 번 입항의 최대 급유비 */
 export const MAX_REFUEL = REFUEL_PRICE.far;
 

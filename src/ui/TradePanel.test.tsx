@@ -12,7 +12,7 @@ import { clampQty, createGuard, maxQty, tradeAction, tradeSummary, type Row } fr
 import portSrc from './PortPanel.tsx?raw';
 
 const resume = vi.fn();
-vi.mock('../game/SailingScene', () => ({ resumeSailing: () => resume() }));
+vi.mock('../game/SailingScene', () => ({ departPort: () => resume() }));
 const { M2_TIP, M7_BANNER, leavePort, portRows } = await import('./PortPanel');
 
 /** gameStore 와 같은 규칙(거부면 상태 안 바꿈)의 테스트 저장소 */
@@ -170,7 +170,7 @@ describe('예인 입항', () => {
 });
 
 describe('출항', () => {
-  it('LEAVE_PORT → 화면 닫고 resumeSailing 호출', () => {
+  it('LEAVE_PORT → 화면 닫고 departPort 호출', () => {
     resume.mockClear();
     const st = store(at('saudi'));
     const close = vi.fn();
@@ -180,7 +180,7 @@ describe('출항', () => {
     expect(close).toHaveBeenCalledOnce();
     expect(resume).toHaveBeenCalledOnce();
   });
-  it('resumeSailing 이 쓰는 출항 지점은 항구 반경 밖(즉시 재입항 없음)', () => {
+  it('departPort 가 쓰는 출항 지점은 항구 반경 밖(즉시 재입항 없음)', () => {
     const sea = { width: 1, height: 1, data: new Uint8Array(1) };
     const p = exitPoint(PORT_BY_ID.saudi, sea);
     expect(Math.hypot(p.x - 0.26, p.y - 0.46)).toBeGreaterThan(DOCK_RADIUS);
