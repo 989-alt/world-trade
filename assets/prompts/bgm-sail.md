@@ -1,0 +1,1 @@
+Bright, breezy nautical adventure theme for a children's sea-trading game. Ukulele strums, marimba melody, light pizzicato strings, soft hand percussion and a warm bass, 110 BPM, major key, hopeful and playful like setting sail on a sunny morning. Seamlessly loopable, about 90 seconds. Instrumental only, no vocals.

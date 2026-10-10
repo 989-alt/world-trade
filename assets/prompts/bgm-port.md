@@ -1,0 +1,1 @@
+Lively, friendly harbor-market theme for a children's trading game. Accordion lead, hand drums and tambourine, plucked guitar, gentle brass stabs, 100 BPM, major key, bustling and cheerful without being frantic. Seamlessly loopable, about 60 seconds. Instrumental only, no vocals.
