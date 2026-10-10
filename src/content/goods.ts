@@ -8,16 +8,16 @@ export const GOODS: Good[] = [
   g('crude-oil', '원유', 'raw', 60),
   g('natural-gas', '천연가스', 'raw', 70),
   g('graphite', '흑연', 'raw', 50),
-  g('nickel', '니켈', 'raw', 90),
-  g('steel', '철강', 'product', 150),
+  g('nickel', '니켈', 'raw', 60),
+  g('steel', '철강', 'product', 100),
   g('rice', '쌀', 'raw', 40),
   g('sugar', '설탕', 'raw', 45),
   g('grapes', '청포도', 'raw', 55),
   g('cacao', '카카오', 'raw', 65),
   g('seaweed', '김', 'raw', 40),
-  g('petroleum', '석유 제품', 'product', 160),
-  g('battery', '배터리', 'product', 250),
-  g('car', '자동차', 'product', 400),
+  g('petroleum', '석유 제품', 'product', 150),
+  g('battery', '배터리', 'product', 275),
+  g('car', '자동차', 'product', 560),
   g('semiconductor', '반도체', 'product', 350),
   g('phone', '무선 통신 기기', 'product', 300),
   g('cosmetics', '화장품', 'product', 200),
@@ -28,3 +28,6 @@ export const GOODS: Good[] = [
 ];
 
 export const GOOD_BY_ID = Object.fromEntries(GOODS.map((x) => [x.id, x])) as Record<GoodId, Good>;
+
+/** 특산·레시피 출력이 아닌, 이벤트 카드로만 등장하는 상품 */
+export const EVENT_ONLY_GOODS: GoodId[] = ['cacao'];

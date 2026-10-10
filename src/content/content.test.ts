@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AXES, GOOD_IDS, PORT_IDS, type Axis } from './types';
-import { GOODS } from './goods';
+import { GOODS, EVENT_ONLY_GOODS } from './goods';
 import { PORTS, START_DEPOT, START_CASH, REFUEL_PRICE } from './ports';
 import { RECIPES } from './recipes';
 import { EVENTS } from './events';
@@ -18,7 +18,7 @@ describe('goods / ports', () => {
   });
 
   it('base price ranges by kind', () => {
-    const range = { raw: [40, 100], product: [150, 400], service: [120, 250] } as const;
+    const range = { raw: [40, 100], product: [100, 600], service: [120, 250] } as const;
     for (const g of GOODS) {
       expect(Number.isInteger(g.basePrice)).toBe(true);
       expect(g.basePrice).toBeGreaterThanOrEqual(range[g.kind][0]);
@@ -68,7 +68,8 @@ describe('goods / ports', () => {
 
   it('no orphan goods', () => {
     const made = new Set<string>([...PORTS.flatMap((p) => p.specialties), ...RECIPES.map((r) => r.output)]);
-    expect(GOOD_IDS.filter((g) => !made.has(g))).toEqual([]);
+    expect(GOOD_IDS.filter((g) => !made.has(g) && !EVENT_ONLY_GOODS.includes(g))).toEqual([]);
+    expect(EVENT_ONLY_GOODS.every((g) => !made.has(g))).toBe(true);
   });
 
   it('services >= 2 (drama, ott)', () => {
@@ -93,6 +94,9 @@ describe('recipes', () => {
     for (const r of RECIPES) {
       expect(GOOD_IDS).toContain(r.output);
       for (const i of r.inputs) expect(GOOD_IDS).toContain(i.good);
+      const price = (id: string) => GOODS.find((g) => g.id === id)!.basePrice;
+      const expected = r.inputs.reduce((s, i) => s + price(i.good) * i.qty, 0) * r.valueMultiplier;
+      expect(Math.abs(price(r.output) - expected) / expected).toBeLessThanOrEqual(0.05);
     }
   });
 });

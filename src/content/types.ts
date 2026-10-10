@@ -59,6 +59,8 @@ export type Recipe = {
   nameKo: string;
   inputs: Item[];
   output: GoodId;
+  /** 출력 가치 = 입력 기준가 합 x 배수 (PRD §4.3) */
+  valueMultiplier: number;
   source: string;
 };
 
