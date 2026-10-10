@@ -1,0 +1,75 @@
+/* 항해 HUD — 픽셀 수치는 시안/world-trade/3-게임UI-2항해.html, 색은 tokens.css 변수만 */
+:root {
+  --shade-25: color-mix(in srgb, var(--color-foreground) 25%, transparent);
+  --shade-35: color-mix(in srgb, var(--color-foreground) 35%, transparent);
+}
+
+#ui > .sail-ui { position: absolute; inset: 0; pointer-events: none; }
+.sail-ui .panel { pointer-events: auto; }
+
+.panel {
+  position: absolute;
+  border-style: solid;
+  border-width: 24px 24px 25px;
+  border-image: url(/assets/ui/panel.png) 60 60 90 60 fill / 24px 24px 25px stretch;
+  padding: 6px 8px;
+  filter: drop-shadow(0 8px 10px var(--shade-25));
+}
+
+.btn {
+  --s: 0.18;
+  position: relative;
+  display: block;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  height: calc(407px * var(--s));
+  border-style: solid;
+  border-width: calc(179px * var(--s)) calc(190px * var(--s)) calc(228px * var(--s));
+  border-image: url(/assets/ui/btn-blue.png) 179 190 228 fill / calc(179px * var(--s)) calc(190px * var(--s)) calc(228px * var(--s)) stretch;
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--color-primary-foreground);
+  text-shadow: 0 2px 0 var(--shade-35);
+  min-width: 120px;
+}
+.btn > span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  transform: translateY(-50%);
+}
+.btn.orange { border-image-source: url(/assets/ui/btn-orange.png); color: var(--color-accent-foreground); text-shadow: none; }
+.btn.cream { border-image-source: url(/assets/ui/btn-cream.png); color: var(--color-foreground); text-shadow: none; }
+.btn.lg { --s: 0.2; font-size: 26px; }
+.btn.sm { --s: 0.15; font-size: 19px; }
+.btn:disabled { cursor: default; opacity: 0.5; }
+
+.hud { left: 16px; top: 12px; right: 16px; height: 80px; display: flex; align-items: center; gap: 26px; padding: 0 16px; }
+.hud .s { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 24px; line-height: 1; }
+.hud .s img { width: 44px; height: 44px; display: block; }
+.hud .s b { font-weight: 400; }
+.hud .spacer { flex: 1; }
+.gauge { width: 160px; height: 20px; border: 3px solid var(--color-border); border-radius: 999px; background: var(--color-land); overflow: hidden; }
+.gauge i { display: block; height: 100%; background: var(--color-accent); border-right: 3px solid var(--color-border); }
+
+.radio { right: 20px; top: 108px; width: 330px; display: grid; gap: 6px; }
+.radio h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 19px; line-height: 1.3; }
+.tag { display: inline-flex; align-items: center; justify-self: start; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 15px; font-weight: 700; border: 2px solid var(--color-border); line-height: 1; }
+.tag.imp { background: var(--color-import); color: var(--color-import-foreground); }
+.tag img { width: 22px; height: 22px; }
+
+.prompt { left: 440px; top: 300px; width: 380px; display: grid; gap: 12px; justify-items: center; padding: 10px 14px 14px; }
+.prompt .name { font-family: var(--font-display); font-size: 26px; line-height: 1; display: flex; align-items: center; gap: 8px; }
+.prompt .name img { width: 40px; height: 40px; }
+.prompt .btn { width: 100%; }
+
+.cargo { left: 16px; bottom: 16px; width: 330px; }
+.slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.slot { height: 56px; border: 3px solid var(--color-border); border-radius: 12px; background: var(--color-land); display: grid; place-items: center; text-align: center; font-size: 15px; color: var(--color-muted-foreground); line-height: 1; }
+.slot.full { background: var(--color-card); color: var(--color-foreground); font-weight: 700; }
