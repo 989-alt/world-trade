@@ -106,7 +106,7 @@ export function answerCause(
   if (s.step !== 'cause') throw new Error(`answerCause: step is ${s.step}`);
   const attempt = ++s.causeAttempts as 1 | 2;
   const correct = s.correctCauses.includes(answer);
-  s.log.push({ type: 'judge_cause', port: s.port, good: s.good, answer, correct, attempt });
+  s.log.push({ type: 'judge_cause', port: s.port, good: s.good, answer, correct, attempt, dir: s.dir });
   if (attempt === 2) s.retried = true;
   if (correct) {
     s.step = 'done';
@@ -126,7 +126,7 @@ export function answerCause(
 
 /** 새로 고침·이어하기 복원: 마지막 port_call 뒤 judge_dir/judge_cause 를 로그 순서대로 재생해 이번 입항의 판정 세션을 되살린다.
  *  세션은 첫 judge_dir 순서대로 startJudgment(같은 seed rng 소비 순서), 답은 다시 로그하지 않는다. 키 = `${dir}:${good}` (PortPanel entries 와 같음).
- *  까닭 로그엔 방향이 없어 같은 상품의 까닭 단계 세션 중 가장 늦게 연 것에 붙인다 */
+ *  까닭 로그의 dir 로 귀속(구 저장본은 휴리스틱) */
 export function restoreSessions(events: readonly LogEvent[], shuffle: Shuffle, log: Log): Map<string, JudgmentSession> {
   const sessions = new Map<string, JudgmentSession>();
   let from = 0;
@@ -144,8 +144,11 @@ export function restoreSessions(events: readonly LogEvent[], shuffle: Shuffle, l
       const s = sessions.get(key)!;
       if (s.step === 'dir') answerDir(s, e.answer);
     } else if (e.type === 'judge_cause') {
-      const s = [...sessions.values()].reverse().find((x) => x.good === e.good && x.step === 'cause');
-      if (s) answerCause(s, e.answer);
+      // dir 가 있으면 그 세션에 직접 귀속, 없는 구 저장본만 같은 상품의 까닭 단계 세션 중 가장 늦게 연 것
+      const s = e.dir
+        ? sessions.get(`${e.dir}:${e.good}`)
+        : [...sessions.values()].reverse().find((x) => x.good === e.good && x.step === 'cause');
+      if (s?.step === 'cause') answerCause(s, e.answer);
     }
   }
   for (const s of sessions.values()) s.log = log;

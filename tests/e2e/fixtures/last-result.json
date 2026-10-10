@@ -3,7 +3,7 @@
   "nickname": "고래",
   "seat": "3",
   "seed": 42,
-  "finishedAt": "2026-10-10T14:39:23.368Z",
+  "finishedAt": "2026-10-10T15:05:27.671Z",
   "summary": {
     "cash": 4208,
     "portCalls": 6,
@@ -214,6 +214,7 @@
       "answer": "nature",
       "correct": false,
       "attempt": 1,
+      "dir": "export",
       "t": 15
     },
     {
@@ -223,6 +224,7 @@
       "answer": "tech",
       "correct": true,
       "attempt": 2,
+      "dir": "export",
       "t": 16
     },
     {
@@ -252,6 +254,7 @@
       "answer": "capital",
       "correct": true,
       "attempt": 1,
+      "dir": "import",
       "t": 19
     },
     {
@@ -296,7 +299,7 @@
     {
       "type": "refuel",
       "port": "saudi",
-      "fuel": 68.90105955239832,
+      "fuel": 68.90134281994355,
       "cost": 100,
       "t": 26
     },
@@ -316,6 +319,7 @@
       "answer": "nature",
       "correct": false,
       "attempt": 1,
+      "dir": "export",
       "t": 28
     },
     {
@@ -325,6 +329,7 @@
       "answer": "tech",
       "correct": true,
       "attempt": 2,
+      "dir": "export",
       "t": 29
     },
     {
@@ -365,6 +370,7 @@
       "answer": "resource",
       "correct": true,
       "attempt": 1,
+      "dir": "import",
       "t": 33
     },
     {
@@ -393,6 +399,7 @@
       "answer": "resource",
       "correct": true,
       "attempt": 1,
+      "dir": "import",
       "t": 36
     },
     {
@@ -459,6 +466,7 @@
       "answer": "geo",
       "correct": true,
       "attempt": 1,
+      "dir": "export",
       "t": 46
     },
     {
@@ -487,6 +495,7 @@
       "answer": "geo",
       "correct": true,
       "attempt": 1,
+      "dir": "export",
       "t": 49
     },
     {
@@ -540,7 +549,7 @@
     {
       "type": "refuel",
       "port": "busan",
-      "fuel": 99.0543910236614,
+      "fuel": 99.05497897132005,
       "cost": 0,
       "t": 58
     },
@@ -601,6 +610,7 @@
       "answer": "resource",
       "correct": true,
       "attempt": 1,
+      "dir": "export",
       "t": 67
     },
     {
@@ -629,6 +639,7 @@
       "answer": "tech",
       "correct": true,
       "attempt": 1,
+      "dir": "import",
       "t": 70
     },
     {
@@ -674,6 +685,7 @@
       "answer": "geo",
       "correct": true,
       "attempt": 1,
+      "dir": "export",
       "t": 76
     },
     {
@@ -702,6 +714,7 @@
       "answer": "geo",
       "correct": true,
       "attempt": 1,
+      "dir": "export",
       "t": 79
     },
     {

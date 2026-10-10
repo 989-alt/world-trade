@@ -144,7 +144,9 @@ function PortCall({ store, state, close }: { store: GameStore; state: GameState;
         </div>
       )}
       {!home && row && entry && (
-        <JudgmentDialog
+        // 수출 까닭(「…이 부족해서」 11자)이면 long — JudgmentDialog 밖 래퍼(display:contents)로 .long .choices 를 건다
+        <div class={entry.session.questionKey === 'why_buys' && entry.session.step === 'cause' ? 'long' : undefined} style="display:contents">
+          <JudgmentDialog
           key={row.key}
           entry={entry}
           portName={port.nameKo}
@@ -154,6 +156,7 @@ function PortCall({ store, state, close }: { store: GameStore; state: GameState;
         >
           <TradePanel store={store} state={state} row={row} session={entry.session} delay={delay} />
         </JudgmentDialog>
+        </div>
       )}
     </>
   );

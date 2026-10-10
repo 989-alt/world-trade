@@ -57,6 +57,9 @@ export function buildResult(state: GameState, now = new Date()): ExportResult {
   };
 }
 
+/** 학생 기원 문자열: 수식 시작 문자(= + - @ 탭 CR)면 ' 를 앞에 붙여 스프레드시트가 수식으로 읽지 않게 한다 */
+const guard = (v: string) => (/^[=+\-@\t\r]/.test(v) ? `'${v}` : v);
+
 const cell = (v: string | number) => {
   const s = String(v);
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -67,7 +70,7 @@ export function toCsv(rows: LedgerRow[], manual: ManualRow[] = []): string {
   const lines = [
     ['입항', '수출국', '물자·서비스', '수입국', '까닭'],
     ...rows.map((r) => [r.portCall, r.exporter, r.good, r.importer, r.cause]),
-    ...manual.map((m) => ['+', m.exporter, m.good, m.importer, m.correct ? '✓' : '✕']),
+    ...manual.map((m) => ['+', guard(m.exporter), guard(m.good), guard(m.importer), m.correct ? '✓' : '✕']),
   ];
   return '﻿' + lines.map((l) => l.map(cell).join(',')).join('\r\n') + '\r\n';
 }

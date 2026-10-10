@@ -3,7 +3,7 @@ import type { Axis, GoodId, PortId, Recipe } from '../content/types';
 /** PRD §9 LogEvent. towed·refuel 은 §4.7(예인·급유) 로그 */
 export type LogEvent =
   | { t: number; type: 'judge_dir'; port: PortId; good: GoodId; answer: 'import' | 'export'; correct: boolean; attempt: 1 | 2 }
-  | { t: number; type: 'judge_cause'; port: PortId; good: GoodId; answer: Axis; correct: boolean; attempt: 1 | 2 }
+  | { t: number; type: 'judge_cause'; port: PortId; good: GoodId; answer: Axis; correct: boolean; attempt: 1 | 2; dir?: 'import' | 'export' }
   | { t: number; type: 'trade'; from: PortId; to: PortId; good: GoodId; qty: number; price: number; dir: 'import' | 'export' | 'transit' }
   | { t: number; type: 'process'; recipe: Recipe['id']; inputsOrigin: PortId[] }
   | { t: number; type: 'event_choice'; event: string; choice: string }

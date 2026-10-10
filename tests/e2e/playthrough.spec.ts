@@ -5,7 +5,7 @@ import { EVENTS } from '../../src/content/events';
 import { PORT_BY_ID } from '../../src/content/ports';
 import type { PortId } from '../../src/content/types';
 import {
-  URL as GAME_URL, answerEvent, canvasShot, cornersOnMap, findSprite, homeTrade, judge, judgeAndTrade, landAt, leave, logOf, newGame, row, sail,
+  URL as GAME_URL, answerEvent, canvasShot, causeChoices, cornersOnMap, findSprite, homeTrade, judge, judgeAndTrade, landAt, leave, logOf, newGame, row, sail,
   shipLandFraction, state, stepAndGo, view,
 } from './helpers';
 
@@ -157,7 +157,24 @@ async function playthrough(page: Page): Promise<Run> {
 
   // 5 일본: 반도체 수출, 로봇 수입
   await go(5, 'japan');
-  await judgeAndTrade(page, 'semiconductor', 'sell', 2);
+  // X3 수출 까닭(「…이 부족해서」) 선택지: 글자 Range 가 타일 안(±1.5px) — judgeAndTrade 와 같은 순서에 측정·스크린샷을 끼운다
+  await row(page, 'semiconductor', 'last').click();
+  const dlg5 = page.locator('.port-ui .speech');
+  await dlg5.getByRole('button', { name: '수출', exact: true }).click();
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(250);
+  const tiles = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('.port-ui .speech .tile')).map((e) => {
+      const r = document.createRange();
+      r.selectNodeContents(e.querySelector('span')!);
+      const t = r.getBoundingClientRect(), b = e.getBoundingClientRect();
+      return { text: (e as HTMLElement).innerText, over: Math.max(b.left - t.left, t.right - b.right, b.top - t.top, t.bottom - b.bottom) };
+    }));
+  expect(tiles).toHaveLength(5);
+  for (const t of tiles) expect(t.over, `수출 까닭 타일 넘침: ${t.text}`).toBeLessThanOrEqual(1.5);
+  await page.screenshot({ path: `${SHOTS}export-choices.jpg`, type: 'jpeg', quality: 70 });
+  await dlg5.getByRole('button', { name: causeChoices('japan', 'semiconductor', 'export').right, exact: true }).click();
+  await stepAndGo(page, '.port-ui .speech', 2, '팔기');
   await judgeAndTrade(page, 'robot', 'buy', 2);
   await leave(page);
 

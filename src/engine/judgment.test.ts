@@ -305,4 +305,31 @@ describe('Q1 restoreSessions — 새로 고침 뒤 이번 입항 판정 복원',
     const later = [...events, { t: 200, type: 'port_call', port: 'singapore', turn: 3 } as LogEvent];
     expect(restoreSessions(later, seeded(5), createLog()).size).toBe(0);
   });
+
+  it('X2 같은 상품 수입→수출→수입 까닭 교차 진행도 dir 로 귀속해 복원한다', () => {
+    const log = createLog();
+    const events = log.events as unknown as LogEvent[];
+    events.push({ t: 1, type: 'port_call', port: 'japan', turn: 1 });
+    const shuffle = seeded(7);
+    const imp = startJudgment({ port: 'japan', good: 'semiconductor', dir: 'import', shuffle, log });
+    const exp = startJudgment({ port: 'japan', good: 'semiconductor', dir: 'export', shuffle, log });
+    if (!imp.ok || !exp.ok) throw new Error('start');
+    answerDir(imp.session, 'import');
+    answerDir(exp.session, 'export');
+    answerCause(imp.session, 'tech');
+    expect(events.find((e) => e.type === 'judge_cause')).toMatchObject({ dir: 'import' });
+    const got = restoreSessions(events, seeded(7), createLog());
+    expect(got.get('import:semiconductor')!.step).toBe('done');
+    expect(got.get('export:semiconductor')!.step).toBe('cause');
+    expect(got.get('export:semiconductor')!.causeAttempts).toBe(0);
+  });
+
+  it('X2 dir 없는 구 저장본은 휴리스틱으로 복원한다', () => {
+    const events: LogEvent[] = [
+      { t: 1, type: 'port_call', port: 'japan', turn: 1 },
+      { t: 2, type: 'judge_dir', port: 'japan', good: 'robot', answer: 'import', correct: true, attempt: 1 },
+      { t: 3, type: 'judge_cause', port: 'japan', good: 'robot', answer: 'tech', correct: true, attempt: 1 },
+    ];
+    expect(restoreSessions(events, seeded(1), createLog()).get('import:robot')!.step).toBe('done');
+  });
 });

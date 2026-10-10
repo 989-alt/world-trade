@@ -10,7 +10,7 @@ export type Location = PortId | 'sea';
 /** PRD §9 LogEvent + 엔진이 남기는 항해·입항 로그. log.ts(T04) 갈래와 같은 모양 */
 export type LogEvent =
   | { t: number; type: 'judge_dir'; port: PortId; good: GoodId; answer: 'import' | 'export'; correct: boolean; attempt: 1 | 2 }
-  | { t: number; type: 'judge_cause'; port: PortId; good: GoodId; answer: Axis; correct: boolean; attempt: 1 | 2 }
+  | { t: number; type: 'judge_cause'; port: PortId; good: GoodId; answer: Axis; correct: boolean; attempt: 1 | 2; dir?: 'import' | 'export' }
   | { t: number; type: 'trade'; from: PortId; to: PortId; good: GoodId; qty: number; price: number; dir: 'import' | 'export' | 'transit'; fee?: number; flag?: 'buying_own_specialty' }
   | { t: number; type: 'process'; recipe: Recipe['id']; inputsOrigin: PortId[] }
   | { t: number; type: 'event_choice'; event: EventId; choice: string }

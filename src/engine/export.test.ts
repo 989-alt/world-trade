@@ -20,6 +20,13 @@ describe('toCsv', () => {
   });
 });
 
+describe('X1 CSV 수식 가드', () => {
+  it("학생 기원 셀 =,+,-,@ 시작이면 ' 접두, 행 표식 + 은 그대로", () => {
+    const out = toCsv([], [{ exporter: '=1+1', good: '@SUM(A1)', importer: '-2', correct: false }]);
+    expect(out).toContain("\r\n+,'=1+1,'@SUM(A1),'-2,✕\r\n");
+  });
+});
+
 describe('fileNames', () => {
   const d = new Date(2026, 9, 10);
   it("strips path chars and spaces: '../a b' → 'ab'", () => {
