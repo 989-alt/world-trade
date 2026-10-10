@@ -52,8 +52,11 @@ export function isLand(m: Mask, x: number, y: number): boolean {
   return m.data[py * m.width + px] === 1;
 }
 
-/** 선수·선미 = 중심에서 헤딩 방향 ±14 마스크px(월드 = 마스크 크기라 월드px 와 같다). 배 그림 36px 의 끝보다 조금 안쪽 */
-export const HULL_PX = 14;
+/**
+ * 선수·선미 = 중심에서 헤딩 방향 ±28 마스크px(월드 = 마스크 크기라 월드px 와 같다). 배 그림 72px 의 끝(36)보다 조금 안쪽.
+ * 항해 마스크는 이미 6px 부풀린 육지(선체 폭 여유)라 선체 옆면은 따로 보지 않는다
+ */
+export const HULL_PX = 28;
 
 /** p 에 헤딩 dir(마스크 픽셀 공간 단위벡터, 0 벡터면 중심만)로 놓인 배의 선수·중심·선미 중 하나라도 육지인가 */
 export function hullOnLand(m: Mask, p: Pos, dir: Pos, half = HULL_PX): boolean {
@@ -77,4 +80,18 @@ export function tryMove(m: Mask, pos: Pos, delta: Pos): Pos {
     if (isLand(m, x, y) || isLand(m, x + hx, y + hy)) return pos;
   }
   return { x: pos.x + delta.x, y: pos.y + delta.y };
+}
+
+/** 선분 a→b 를 1 마스크px 간격으로 훑어 선체 3점(진행 방향 ±HULL_PX) 중 하나라도 육지인 첫 점, 없으면 null(예인·뱃길 검증) */
+export function segmentOnLand(m: Mask, a: Pos, b: Pos): Pos | null {
+  const dx = (b.x - a.x) * m.width;
+  const dy = (b.y - a.y) * m.height;
+  const px = Math.hypot(dx, dy);
+  const dir = px === 0 ? { x: 0, y: 0 } : { x: dx / px, y: dy / px };
+  const n = Math.max(1, Math.ceil(px));
+  for (let i = 0; i <= n; i++) {
+    const p = { x: a.x + ((b.x - a.x) * i) / n, y: a.y + ((b.y - a.y) * i) / n };
+    if (hullOnLand(m, p, dir)) return p;
+  }
+  return null;
 }

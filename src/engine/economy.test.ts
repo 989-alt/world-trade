@@ -180,7 +180,7 @@ describe('공장', () => {
 });
 
 describe('연료', () => {
-  it('소비: 부산 출발 최장 바닷길(독일, LONGEST_ROUTE) ≈ 270 ≤ TANK×0.9, 직선 편도는 전부 그 안', () => {
+  it('소비: 부산 출발 최장 바닷길(LONGEST_ROUTE) ≈ 270 ≤ TANK×0.9, 직선 편도는 전부 그 안', () => {
     expect(FUEL_PER_UNIT).toBe(Math.floor((TANK * 0.9) / LONGEST_ROUTE));
     expect(MAX_LEG_FUEL).toBe(fuelCostFor(LONGEST_ROUTE));
     expect(MAX_LEG_FUEL).toBeLessThanOrEqual(270);

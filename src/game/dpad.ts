@@ -32,12 +32,13 @@ export class TouchPad {
   private anchorPointer: number | null = null;
   private pad: Phaser.GameObjects.Image;
   private anchor: Phaser.GameObjects.Image;
-  /** 씬이 UI 전용 카메라(줌 1·스크롤 0)에만 그린다 → 월드 카메라 줌·추적과 무관하게 같은 화면 자리·크기 */
+  /** 씬이 UI 전용 카메라(왼쪽 위 기준 줌 k·스크롤 0)에만 그린다 → 월드 카메라 줌·추적과 무관하게 같은 화면 자리·크기 */
   get images() {
     return [this.pad, this.anchor];
   }
 
-  constructor(scene: Phaser.Scene, onAnchor: () => void) {
+  /** k = 캔버스 배수(boot.ts): 포인터 좌표(캔버스 px)를 1280×720 스테이지 좌표로 나눈다 */
+  constructor(scene: Phaser.Scene, onAnchor: () => void, private k = 1) {
     if (scene.input.manager.pointersTotal < 3) scene.input.addPointer(1); // 마우스 + 터치 1 + 1 = 터치 2개(재시작마다 늘지 않게)
     const fixed = (img: Phaser.GameObjects.Image, r: Rect) =>
       img.setOrigin(0.5).setPosition(r.x + r.w / 2, r.y + r.h / 2).setDisplaySize(r.w, r.h).setScrollFactor(0).setDepth(10);
@@ -45,7 +46,7 @@ export class TouchPad {
     this.anchor = fixed(scene.add.image(0, 0, 'anchor-btn'), ANCHOR);
 
     const press = (p: Phaser.Input.Pointer) => {
-      if (inside(ANCHOR, p.x, p.y)) {
+      if (inside(ANCHOR, p.x / this.k, p.y / this.k)) {
         this.anchorPointer = p.id;
         this.anchor.setTexture('anchor-btn-pressed');
         return;
@@ -59,7 +60,7 @@ export class TouchPad {
       if (this.anchorPointer === p.id) {
         this.anchorPointer = null;
         this.anchor.setTexture('anchor-btn');
-        if (inside(ANCHOR, p.x, p.y)) onAnchor();
+        if (inside(ANCHOR, p.x / this.k, p.y / this.k)) onAnchor();
       }
       this.held.delete(p.id);
       this.redraw();
@@ -71,7 +72,7 @@ export class TouchPad {
   }
 
   private track(p: Phaser.Input.Pointer) {
-    const d = dirAt(p.x, p.y);
+    const d = dirAt(p.x / this.k, p.y / this.k);
     if (d) this.held.set(p.id, d);
     else this.held.delete(p.id);
     this.redraw();

@@ -12,27 +12,36 @@ import {
 const RESULT_PATH = fileURLToPath(new URL('./fixtures/last-result.json', import.meta.url));
 const SHOTS = fileURLToPath(new URL('./fixtures/shots/', import.meta.url));
 
-/** V2: 카메라 줌 1.6, worldView 가 지도(0..1536×1024) 안, 화면 네 모서리 색 = 그 자리 지도 색(바탕색 노출 없음). 증거 사진은 fixtures/shots */
+/**
+ * V2·M2: 카메라 줌 1.0(CSS px 당, 뷰 1280×720 월드px), worldView 가 지도(0..3072×2048) 안, 화면 네 모서리 색 = 그 자리 지도 색(바탕색 노출 없음).
+ * M12: 같은 자리에서 배 그림 상자 안 시각 육지 ≤ 5%. 증거 사진은 fixtures/shots
+ */
 async function expectCornersOnMap(page: Page, name: string) {
   await page.waitForTimeout(1500); // 배가 멈춘 뒤 카메라 lerp(0.08)가 따라붙을 시간
   await canvasShot(page, { path: `${SHOTS}v2-${name}.jpg`, jpeg: true });
   const shot = await canvasShot(page);
   const v = await view(page);
   const corners = await cornersOnMap(page, shot, v);
-  console.log(JSON.stringify({ v2: name, cam: v.cam, corners: corners.map((c) => [c.world, c.diff]) }));
-  expect(v.cam.zoom).toBe(1.6);
+  const land = await shipLandFraction(page, v);
+  console.log(JSON.stringify({ v2: name, cam: v.cam, corners: corners.map((c) => [c.world, c.diff]), m12: { frac: +land.frac.toFixed(4), ship: v.ship } }));
+  expect(v.cam.zoom).toBe(1);
+  expect(corners[0].map).toEqual([3072, 2048]); // M1 지도 = 월드
+  expect(v.cam.w).toBeCloseTo(1280, 6);
+  expect(v.cam.h).toBeCloseTo(720, 6);
   expect(v.cam.x).toBeGreaterThanOrEqual(0);
   expect(v.cam.y).toBeGreaterThanOrEqual(0);
-  expect(v.cam.x + v.cam.w).toBeLessThanOrEqual(1536 + 1e-6);
-  expect(v.cam.y + v.cam.h).toBeLessThanOrEqual(1024 + 1e-6);
+  expect(v.cam.x + v.cam.w).toBeLessThanOrEqual(3072 + 1e-6);
+  expect(v.cam.y + v.cam.h).toBeLessThanOrEqual(2048 + 1e-6);
   for (const c of corners) {
     expect(c.inMap, `${name} ${c.screen}`).toBe(true);
     expect(c.diff, `${name} ${c.screen} ${c.shotRgb}`).toBeLessThanOrEqual(40);
   }
+  if (name !== 'busan') expect(land.frac, `${name} 배 아래 시각 육지`).toBeLessThanOrEqual(0.05); // 부산은 출항 직후(항구 안)
+  return v;
 }
 
 /**
- * V8 화면 고정 UI: T14 이전(HEAD c95e357, 줌 1·scrollFactor 0)에서 같은 findSprite 로 잰 값.
+ * V8·M10 화면 고정 UI: T14 이전(HEAD c95e357, 줌 1·scrollFactor 0)에서 같은 findSprite 로 잰 값 — dpr 1·2 모두 이 자리·크기(±1.5px).
  * D-패드 176×184 우28·하24, 닻 120×120 우224·하40 (dpad.ts DPAD·ANCHOR — 그 모듈은 Phaser 를 끌어와 node 에서 못 읽는다)
  */
 const FIXED_UI = [
@@ -269,13 +278,15 @@ test.describe.serial('완주 seed 42', () => {
   });
 });
 
-test('예인 — 급유 없이 두 구간(부산→칠레, 칠레→부산) 연속 항해 → 연료 0 → 예인 연출 → 가장 가까운 항구, 거래 없음·급유만', async ({ page }) => {
+test('예인 — 급유 없이 두 구간(부산→칠레, 칠레→독일) 연속 항해 → 연료 0 → 예인 연출 → 가장 가까운 항구, 거래 없음·급유만', async ({ page }) => {
   await newGame(page);
   await leave(page);
   await sail(page, 'chile', { arrived: () => expectCornersOnMap(page, 'chile') });
   await leave(page); // 칠레에서 급유하지 않는다
   await page.evaluate(() => {
-    void (window as unknown as { __ktrade: { sailTo(p: string): Promise<void> } }).__ktrade.sailTo('busan').catch(() => {});
+    const w = window as unknown as { __ktrade: { sailTo(p: string): Promise<void> }; __sail: Promise<string> };
+    // T15: 연료 잣대가 219/단위로 바뀌어 칠레→부산(0.71)은 연료가 남는다 → 칠레→독일(부산 앞 갈림점까지 되짚고 1.17 더)로 바닥낸다
+    w.__sail = w.__ktrade.sailTo('germany').then(() => 'ok', (e: Error) => `err:${e.message}`);
   });
   const t0 = Date.now();
   let fuelSeen = (await state(page)).fuel;
@@ -290,6 +301,11 @@ test('예인 — 급유 없이 두 구간(부산→칠레, 칠레→부산) 연�
       break;
     }
     await page.waitForTimeout(100);
+  }
+  if (!towedAt) {
+    const st = await state(page);
+    const sailed = await page.evaluate(() => Promise.race([(window as unknown as { __sail: Promise<string> }).__sail, new Promise((r) => setTimeout(() => r('pending'), 100))]));
+    console.log(JSON.stringify({ notTowed: { sailed, shipPos: st.shipPos, fuel: st.fuel, location: st.location } }));
   }
   expect(towedAt, '3분 안에 예인되지 않음').toBeGreaterThan(0);
   // V6: 예인 연출 중 배 그림 위치 표본 — 전부 바다(마스크), 직선이 아니라 뱃길을 따라 꺾인다
@@ -345,12 +361,13 @@ test('손 조타 짧은 뱃길(부산→상하이, 출항점에서 0.04 미만) 
   await page.waitForTimeout(500); // 조작 테스트와 같은 이유(출항 직후 같은 프레임 keydown)
   const exit = (await state(page)).shipPos;
   const shanghai = PORT_BY_ID.shanghai.mapPos;
-  const hold = async (key: string, until: (p: { x: number; y: number }) => boolean) => {
-    await page.keyboard.down(key);
-    await expect.poll(async () => until((await state(page)).shipPos), { timeout: 15_000 }).toBe(true);
-    await page.keyboard.up(key);
-  };
-  await hold('ArrowLeft', (p) => Math.hypot(p.x - shanghai.x, p.y - shanghai.y) <= 0.028);
+  // T15: 상하이 핀은 만 서쪽 육지 위라 ← 만으로는 반경(0.028) 앞 선수가 해안에 걸린다(실측 0.0375) → ← 2초(반 바퀴 돌고 해안 앞까지) 뒤 ↖
+  await page.keyboard.down('ArrowLeft');
+  await page.waitForTimeout(2000);
+  await page.keyboard.down('ArrowUp');
+  await expect.poll(async () => Math.hypot((await state(page)).shipPos.x - shanghai.x, (await state(page)).shipPos.y - shanghai.y) <= 0.028, { timeout: 15_000 }).toBe(true);
+  await page.keyboard.up('ArrowUp');
+  await page.keyboard.up('ArrowLeft');
   const at = await state(page);
   console.log(JSON.stringify({ exit, at: at.shipPos, fromExit: Math.hypot(at.shipPos.x - exit.x, at.shipPos.y - exit.y) }));
   expect(Math.hypot(at.shipPos.x - exit.x, at.shipPos.y - exit.y)).toBeLessThan(0.04); // 거리 트리거로는 못 뜬다
@@ -382,11 +399,11 @@ test('조작 — ArrowRight 2초 → x 증가, ArrowUp 유지 → 육지에 막�
   await newGame(page);
   await leave(page);
   await page.waitForTimeout(500); // 출항 직후 같은 프레임의 keydown 은 멈춰 있던 씬이 못 받는다(사람 손으론 생기지 않는 간격)
-  // V11: 부산 출항점에서 ↓·← 도 바로 움직인다(출항점은 16방위 모두 선체 3점이 바다)
+  // V11: 부산 출항점에서 ↓·← 도 바로 움직인다(출항점은 16방위 모두 선체 3점이 바다). M5: 헤딩은 초당 180° 로 돌아 ← 는 반 바퀴(1초) 돌고 나서 나아간다
   for (const [key, axis, sign] of [['ArrowDown', 'y', 1], ['ArrowLeft', 'x', -1]] as const) {
     const a = (await state(page)).shipPos;
     await page.keyboard.down(key);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(1200);
     await page.keyboard.up(key);
     const b = (await state(page)).shipPos;
     console.log(JSON.stringify({ v11: key, from: a, to: b }));
@@ -443,13 +460,13 @@ test('카드 닫기 — 항구 반경 안에서 무전 카드를 닫아도 배�
   expect(r).toBe('ok');
 });
 
-test('항해 연출(T14) — 카메라 경계(부산·LA)·화면 고정 UI 위치/크기·부산→일본 배 아래 육지 ≤ 5%(V2·V8·V12)', async ({ page }) => {
+test('항해 연출(T14·T15) — 카메라 경계(부산·LA)·화면 고정 UI 위치/크기·부산→일본 배 아래 시각 육지 ≤ 5%(V2·V8·V12·M12)', async ({ page }) => {
   await newGame(page);
   await leave(page);
   await expectCornersOnMap(page, 'busan');
   await expectFixedUi(page, 'busan');
 
-  // V12: 부산→일본 자동 조타 중 0.5초 간격 6장. 배 그림 화면 박스(월드 중심·크기 → 카메라 투영) 안 마스크 육지 비율
+  // V12·M12: 부산→일본 자동 조타 중 0.5초 간격 6장. 배 그림 화면 박스(월드 중심·크기 → 카메라 투영) 안 시각 육지(mask-visual) 비율
   const shots: { i: number; frac: number; ship: { x: number; y: number }; screenBox: number[] }[] = [];
   await sail(page, 'japan', {
     during: async () => {
@@ -476,4 +493,43 @@ test('항해 연출(T14) — 카메라 경계(부산·LA)·화면 고정 UI 위�
       await expectFixedUi(page, 'la');
     },
   });
+});
+
+// M3·M10: 캔버스를 기기 해상도로(deviceScaleFactor 2 → k = 2, 캔버스 2560×1440) 그려도 DOM 배치·D-패드·닻·배의 화면 자리는 dpr 1 과 같다(±1.5px)
+test('dpr 2 — 캔버스 2560×1440, 화면 고정 UI·배 화면 위치 dpr 1 과 같음(M3·M10)', async ({ browser }) => {
+  const at = async (dpr: number) => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: dpr });
+    const page = await ctx.newPage();
+    await newGame(page);
+    await leave(page);
+    await page.waitForTimeout(1500); // 카메라 lerp
+    const canvas = await page.evaluate(() => {
+      const c = document.querySelector('#game canvas') as HTMLCanvasElement;
+      const r = c.getBoundingClientRect();
+      return { width: c.width, height: c.height, css: [r.x, r.y, r.width, r.height], stageScale: document.documentElement.style.getPropertyValue('--stage-scale') };
+    });
+    const v = await view(page);
+    const shipScreen = { x: +((v.ship.x - v.cam.x) * v.cam.zoom).toFixed(2), y: +((v.ship.y - v.cam.y) * v.cam.zoom).toFixed(2) };
+    await canvasShot(page, { path: `${SHOTS}m3-dpr${dpr}.jpg`, jpeg: true });
+    const shot = await canvasShot(page);
+    const ui = [];
+    for (const { src, rect, before } of FIXED_UI) ui.push({ src, before, after: await findSprite(page, shot, src, rect) });
+    await ctx.close();
+    return { dpr, canvas, k: v.cam.k, zoom: v.cam.zoom, shipScreen, ui };
+  };
+  const one = await at(1);
+  const two = await at(2);
+  console.log(JSON.stringify({ m3: [one, two] }));
+  expect(one.canvas.width).toBe(1280);
+  expect(two.canvas.width).toBe(2560 * Number(two.canvas.stageScale));
+  expect(two.canvas.height).toBe(1440 * Number(two.canvas.stageScale));
+  expect(two.k).toBe(2);
+  expect(two.canvas.css).toEqual(one.canvas.css); // CSS 상자 그대로(1280×720)
+  expect(two.zoom).toBe(1);
+  for (const a of ['x', 'y'] as const) expect(Math.abs(two.shipScreen[a] - one.shipScreen[a]), `ship ${a}`).toBeLessThanOrEqual(1.5);
+  for (const [i, { before, after }] of two.ui.entries())
+    for (const key of ['cx', 'cy', 'rx', 'ry'] as const) {
+      expect(Math.abs(after[key] - before[key]), `dpr2 ${FIXED_UI[i].src} ${key}`).toBeLessThanOrEqual(1.5);
+      expect(Math.abs(one.ui[i].after[key] - before[key]), `dpr1 ${FIXED_UI[i].src} ${key}`).toBeLessThanOrEqual(1.5);
+    }
 });

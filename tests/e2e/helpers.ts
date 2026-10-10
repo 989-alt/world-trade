@@ -10,8 +10,8 @@ export const SEED = 42;
 export const URL = `/?seed=${SEED}&e2e=1`;
 
 type Box = { x: number; y: number; w: number; h: number };
-/** 배 그림(중심·표시 크기)과 월드 카메라가 보는 사각형(worldView)·줌, 월드 좌표 */
-export type View = { ship: Box; cam: Box & { zoom: number } };
+/** 배 그림(중심·표시 크기)과 월드 카메라가 보는 사각형(worldView, 월드 좌표)·줌(CSS px 당)·캔버스 배수 k */
+export type View = { ship: Box; cam: Box & { zoom: number; k: number } };
 type W = { __ktrade: { sailTo(p: PortId): Promise<void>; dock(): void; state(): GameState; view(): View }; __sail: Promise<string> };
 
 export const state = (page: Page) => page.evaluate(() => (window as unknown as W).__ktrade.state());
@@ -60,7 +60,7 @@ export async function sail(page: Page, port: PortId, hooks: { during?: () => Pro
   const t0 = Date.now();
   await hooks.during?.();
   for (;;) {
-    if (Date.now() - t0 > 180_000) throw new Error(`sailTo ${port}: 3분 초과`);
+    if (Date.now() - t0 > 240_000) throw new Error(`sailTo ${port}: 4분 초과`);
     await answerEvent(page);
     const r = await page.evaluate(() => Promise.race([(window as unknown as W).__sail, new Promise((res) => setTimeout(() => res(null), 200))]));
     if (r === 'ok') break;
@@ -177,7 +177,7 @@ const probe = (page: Page) =>
   });
 
 /**
- * V2: 화면 네 모서리 픽셀을 카메라(worldView·줌)로 월드에 되돌려 — 지도 안(0..1536×1024)인지, 스크린샷 색이 그 자리 지도 색과 같은지.
+ * V2: 화면 네 모서리 픽셀을 카메라(worldView·줌)로 월드에 되돌려 — 지도 안(0..3072×2048)인지, 스크린샷 색이 그 자리 지도 색과 같은지.
  * 색은 카메라 한두 프레임 어긋남을 봐 ±2 월드px 안 최소 차(RGB 절댓값 합)로 잰다
  */
 export async function cornersOnMap(page: Page, shot: Buffer, v: View) {
@@ -201,7 +201,7 @@ export async function cornersOnMap(page: Page, shot: Buffer, v: View) {
             const j = (my * map.w + mx) * 4;
             diff = Math.min(diff, Math.abs(map.d[j] - shotRgb[0]) + Math.abs(map.d[j + 1] - shotRgb[1]) + Math.abs(map.d[j + 2] - shotRgb[2]));
           }
-        return { screen: [sx, sy], world: [+wx.toFixed(1), +wy.toFixed(1)], inMap: wx >= 0 && wy >= 0 && wx < map.w && wy < map.h, shotRgb, diff };
+        return { screen: [sx, sy], world: [+wx.toFixed(1), +wy.toFixed(1)], inMap: wx >= 0 && wy >= 0 && wx < map.w && wy < map.h, map: [map.w, map.h], shotRgb, diff };
       });
     },
     { b64: shot.toString('base64'), v },
@@ -248,12 +248,15 @@ export async function findSprite(page: Page, shot: Buffer, src: string, rect: Bo
   );
 }
 
-/** V12: 배 그림의 화면 바운딩 박스(월드 중심·크기를 카메라로 투영)를 다시 월드로 되돌려 마스크(흰색 = 육지) 픽셀 비율을 잰다 */
+/**
+ * V12·M12: 배 그림의 화면 바운딩 박스(월드 중심·크기를 카메라로 투영)를 다시 월드로 되돌려 시각 육지 마스크(mask-visual.png, 부풀리지 않은 육지, 흰색)
+ * 픽셀 비율을 잰다. 항해 마스크(6px 부풀림)는 충돌용이라 쓰지 않는다
+ */
 export async function shipLandFraction(page: Page, v: View) {
   await probe(page);
   return page.evaluate(
     async ({ v }) => {
-      const m = await (window as unknown as PxWin).__px('assets/img/mask-worldmap.png');
+      const m = await (window as unknown as PxWin).__px('assets/img/mask-visual.png');
       const z = v.cam.zoom;
       const box = {
         x0: (v.ship.x - v.ship.w / 2 - v.cam.x) * z,

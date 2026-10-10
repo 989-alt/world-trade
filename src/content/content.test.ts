@@ -93,6 +93,16 @@ describe('goods / ports', () => {
       expect(p.mapPos.y).toBeLessThanOrEqual(1);
     }
   });
+
+  it('M8 T15 세부 지도 핀 보정은 ±0.02 안: 독일만 (0.13, 0.22) → (0.12, 0.225) — 원래 자리는 반경 안에 선체가 닿는 바다가 없었다. 항해 가능 바다(출항점)는 collision.test M8', () => {
+    const before: Record<string, [number, number]> = {
+      busan: [0.48, 0.33], saudi: [0.26, 0.46], shanghai: [0.44, 0.37], japan: [0.53, 0.33], vietnam: [0.4, 0.47], singapore: [0.4, 0.55],
+      thai: [0.38, 0.49], indonesia: [0.45, 0.6], la: [0.75, 0.36], germany: [0.13, 0.22], brazil: [0.92, 0.63], chile: [0.86, 0.8],
+    };
+    const moved = PORTS.filter((p) => p.mapPos.x !== before[p.id][0] || p.mapPos.y !== before[p.id][1]);
+    expect(moved.map((p) => p.id)).toEqual(['germany']);
+    for (const p of moved) expect(Math.max(Math.abs(p.mapPos.x - before[p.id][0]), Math.abs(p.mapPos.y - before[p.id][1]))).toBeLessThanOrEqual(0.02);
+  });
 });
 
 describe('recipes', () => {
