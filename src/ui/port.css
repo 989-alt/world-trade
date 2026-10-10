@@ -32,8 +32,8 @@ body.port-open .sail-ui .cargo { display: none; }
   padding: 0;
   height: calc(407px * var(--s));
   border-style: solid;
-  border-width: calc(179px * var(--s)) calc(190px * var(--s)) calc(228px * var(--s));
-  border-image: url(../../assets/ui/btn-blue.png) 179 190 228 fill / calc(179px * var(--s)) calc(190px * var(--s)) calc(228px * var(--s)) stretch;
+  border-width: calc(150px * var(--s)) calc(190px * var(--s)) calc(150px * var(--s));
+  border-image: url(../../assets/ui/btn-blue.png) 150 190 150 fill / calc(150px * var(--s)) calc(190px * var(--s)) calc(150px * var(--s)) stretch;
   font-family: var(--font-display);
   font-size: 24px;
   color: var(--color-primary-foreground);
@@ -44,7 +44,7 @@ body.port-open .sail-ui .cargo { display: none; }
   position: absolute;
   left: 0;
   right: 0;
-  top: 0;
+  top: calc(29px * var(--s)); /* 면 중심 y179 − 윗 슬라이스 150 (DESIGN.md 글자 중심선) */
   line-height: 1;
   white-space: nowrap;
   text-align: center;

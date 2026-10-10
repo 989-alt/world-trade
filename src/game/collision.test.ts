@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { STEP_PX, isLand, maskFromRGBA, tryMove, type Mask } from './collision';
+import maskPng from '../../assets/img/mask-worldmap.png?inline';
+import { PORTS } from '../content/ports';
+import { routeBetween } from './autopilot';
+import { STEP_PX, isLand, isOcean, maskFromRGBA, tryMove, withOcean, type Mask } from './collision';
+import { exitPoint, nearestPortWithin } from './ports-layout';
+import type { Pos } from './ship';
 
 /** 64×64 합성 마스크: x ≥ 40 육지(동쪽 해안), y = 20 한 줄 1px 벽(x 0~19), 섬 10..13×40..43 */
 function synthetic(): Mask {
@@ -59,5 +64,92 @@ describe('tryMove', () => {
     const p = { x: f(39.6), y: f(5.5) };
     expect(tryMove(m, p, { x: f(0.23), y: 0 }).x).toBeCloseTo(f(39.83), 12);
     expect(tryMove(m, { x: f(39.8), y: f(5.5) }, { x: f(0.23), y: 0 }).x).toBe(f(39.8));
+  });
+});
+
+/** 런타임과 같은 mask-worldmap.png(1비트 회색, 비인터레이스)를 Node 에서 직접 푼다: IDAT inflate + 행 필터 복원. 1 = 흰색 = 육지 */
+async function decodeMask(): Promise<Mask> {
+  const bin = Uint8Array.from(atob(maskPng.split(',')[1]), (ch) => ch.charCodeAt(0));
+  const dv = new DataView(bin.buffer);
+  let [w, h, depth, color, interlace] = [0, 0, 0, 0, 0];
+  const idat: Uint8Array[] = [];
+  for (let p = 8; p < bin.length; ) {
+    const len = dv.getUint32(p);
+    const type = String.fromCharCode(...bin.subarray(p + 4, p + 8));
+    if (type === 'IHDR') [w, h, depth, color, interlace] = [dv.getUint32(p + 8), dv.getUint32(p + 12), bin[p + 16], bin[p + 17], bin[p + 20]];
+    if (type === 'IDAT') idat.push(bin.slice(p + 8, p + 8 + len));
+    p += 12 + len;
+  }
+  expect([depth, color, interlace]).toEqual([1, 0, 0]);
+  const zipped = new Blob(idat as BlobPart[]).stream().pipeThrough(new DecompressionStream('deflate'));
+  const raw = new Uint8Array(await new Response(zipped).arrayBuffer());
+  const stride = Math.ceil(w / 8);
+  const rows = new Uint8Array(stride * h);
+  for (let y = 0; y < h; y++) {
+    const f = raw[y * (stride + 1)];
+    for (let x = 0; x < stride; x++) {
+      const v = raw[y * (stride + 1) + 1 + x];
+      const a = x > 0 ? rows[y * stride + x - 1] : 0;
+      const b = y > 0 ? rows[(y - 1) * stride + x] : 0;
+      const c = x > 0 && y > 0 ? rows[(y - 1) * stride + x - 1] : 0;
+      const pa = Math.abs(b - c), pb = Math.abs(a - c), pc = Math.abs(a + b - 2 * c);
+      const pred = [0, a, b, (a + b) >> 1, pa <= pb && pa <= pc ? a : pb <= pc ? b : c][f];
+      rows[y * stride + x] = (v + pred) & 255;
+    }
+  }
+  const data = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) data[y * w + x] = (rows[y * stride + (x >> 3)] >> (7 - (x & 7))) & 1;
+  return { width: w, height: h, data };
+}
+
+const mask = withOcean(await decodeMask());
+const [MASK_W, MASK_H] = [mask.width, mask.height];
+
+/** 선분을 1% 와 0.25 마스크픽셀 중 더 촘촘한 간격으로 훑어 육지 점을 돌려준다 */
+function landOn(a: Pos, b: Pos): Pos | null {
+  const px = Math.hypot((b.x - a.x) * MASK_W, (b.y - a.y) * MASK_H);
+  const n = Math.max(100, Math.ceil(px / 0.25));
+  for (let i = 0; i <= n; i++) {
+    const p = { x: a.x + ((b.x - a.x) * i) / n, y: a.y + ((b.y - a.y) * i) / n };
+    if (isLand(mask, p.x, p.y)) return p;
+  }
+  return null;
+}
+
+describe('autopilot waypoints (mask-worldmap.png)', () => {
+  it('PNG 를 제대로 풀었다: 1536×1024, 육지 439,503 픽셀(PIL 실측)', () => {
+    expect([MASK_W, MASK_H]).toEqual([1536, 1024]);
+    expect(mask.data.reduce((n, v) => n + v, 0)).toBe(439503);
+    // 검사기가 육지를 실제로 잡는지: 부산 → 독일 직선은 유라시아를 지난다
+    expect(landOn(PORTS[0].mapPos, PORTS.find((p) => p.id === 'germany')!.mapPos)).not.toBeNull();
+  });
+
+  it('출항점은 갇힌 호수가 아니라 큰 바다(독일 포함)', () => {
+    for (const p of PORTS) {
+      const e = exitPoint(p, mask);
+      expect(isOcean(mask, e.x, e.y), p.id).toBe(true);
+      expect(nearestPortWithin(e), p.id).toBeNull();
+    }
+  });
+
+  it('모든 항구 → 모든 항구 경로의 샘플점이 전부 바다이고 목적 항구 반경에서 끝난다', () => {
+    for (const from of PORTS) {
+      for (const to of PORTS) {
+        if (from === to) continue;
+        const path = [exitPoint(from, mask), ...routeBetween(from.id, to.id)];
+        for (let i = 1; i < path.length; i++) {
+          expect(landOn(path[i - 1], path[i]), `${from.id}→${to.id} #${i}`).toBeNull();
+        }
+        expect(nearestPortWithin(path[path.length - 1])?.id, `${from.id}→${to.id}`).toBe(to.id);
+      }
+    }
+  });
+
+  it('부산에서 12항구 전부 닿는다(새 판 시작 = 부산 출항점)', () => {
+    const reached = PORTS.filter((to) => {
+      const path = [exitPoint(PORTS[0], mask), ...routeBetween('busan', to.id)];
+      return path.every((p, i) => i === 0 || !landOn(path[i - 1], p)) && nearestPortWithin(path[path.length - 1])?.id === to.id;
+    });
+    expect(reached.map((p) => p.id)).toEqual(PORTS.map((p) => p.id));
   });
 });

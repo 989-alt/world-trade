@@ -2,6 +2,7 @@
 #ui > .title { position: absolute; inset: 0; }
 .title .art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .title .logo { position: absolute; left: 50%; top: 48px; transform: translateX(-50%); width: 640px; filter: drop-shadow(0 12px 14px var(--shade-35)); }
+.title .corner { position: absolute; right: 16px; top: 16px; display: flex; gap: 8px; }
 .title .start { left: 50%; bottom: 40px; transform: translateX(-50%); width: 540px; display: grid; gap: 12px; padding: 12px 14px 14px; }
 .title .start .btn { width: 100%; }
 .field { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }

@@ -8,7 +8,8 @@ import type { GameState } from '../engine/types';
 import { DOCK_RADIUS, exitPoint, nearestPortWithin } from '../game/ports-layout';
 import { recipeView } from './FactoryPanel';
 import { TIP_FULL, TIP_NO_CASH, refuelView } from './RefuelPanel';
-import { clampQty, createGuard, maxQty, tradeAction, tradeSummary, tryBlockedExport, type Row } from './TradePanel';
+import { clampQty, createGuard, maxQty, tradeAction, tradeSummary, type Row } from './TradePanel';
+import portSrc from './PortPanel.tsx?raw';
 
 const resume = vi.fn();
 vi.mock('../game/SailingScene', () => ({ resumeSailing: () => resume() }));
@@ -101,7 +102,7 @@ describe('더블탭', () => {
 });
 
 describe('M2 원유·천연가스 수출', () => {
-  it('부산 줄은 잠금(blocked) + 툴팁 문장, 누르면 LOAD 거부와 export_attempt_blocked 로그', () => {
+  it('부산 줄은 잠금(blocked) + 툴팁 문장, 눌러도 dispatch 없음 → export_attempt_blocked 0건(PRD S6)', () => {
     const s = at('busan');
     for (const g of ['crude-oil', 'natural-gas'] as const) {
       const r = rowOf(s, `blocked:${g}`);
@@ -109,11 +110,10 @@ describe('M2 원유·천연가스 수출', () => {
       expect(maxQty(s, r)).toBe(0);
     }
     expect(M2_TIP).toBe('우리나라는 원유를 전량 수입합니다');
-    const st = store(s);
-    const r = tryBlockedExport(st, 'crude-oil');
-    expect(r.reason).toBe('not_in_depot');
-    expect(st.get().log[st.get().log.length - 1]).toMatchObject({ type: 'export_attempt_blocked', good: 'crude-oil' });
-    expect(st.get().cargo).toEqual([]);
+    // 행 클릭 처리(choose)는 blocked 면 store 를 건드리기 전에 끝난다
+    expect(portSrc).toMatch(/if \(r\.mode === 'blocked'\) return;/);
+    expect(portSrc).not.toMatch(/tryBlockedExport|type: 'LOAD'/);
+    expect(s.log.filter((e) => e.type === 'export_attempt_blocked')).toHaveLength(0);
   });
 });
 

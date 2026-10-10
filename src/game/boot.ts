@@ -21,6 +21,8 @@ export function boot(): Phaser.Game {
     backgroundColor: SEA,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     scene: scenes,
+    // CSP connect-src 'none' 이라 XHR 로더가 막힌다 → 모든 씬이 <img> 로 읽는다
+    loader: { imageLoadType: 'HTMLImageElement' },
   });
   return game;
 }

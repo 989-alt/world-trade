@@ -77,12 +77,12 @@ describe('질문 문구', () => {
     expect(vm.question).toContain('싸게 파는 까닭');
     expect(vm.choices.map((c) => c.label).sort()).toEqual(['기술', '자본', '자연환경', '자원', '지리적 위치'].sort());
   });
-  it("수출: '사 가는 까닭', 선택지 = '○○이/가 부족해서'", () => {
+  it("수출: '사 오는 까닭'(PRD §4.2), 선택지 = '○○이/가 부족해서'", () => {
     const e = entry('saudi', 'car', 'export');
     expect(judgmentView(e, '사우디아라비아', '자동차').question).toContain('팔기');
     applyDir(e, 'export');
     const vm = judgmentView(e, '사우디아라비아', '자동차');
-    expect(vm.question).toContain('사 가는 까닭');
+    expect(vm.question).toContain('사 오는 까닭');
     expect(vm.choices).toHaveLength(5);
     for (const c of vm.choices) expect(c.label).toMatch(/[이가] 부족해서$/);
     expect(vm.choices.map((c) => c.label)).toContain('기술이 부족해서');

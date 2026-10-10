@@ -6,9 +6,24 @@ import { CARGO_CAP, PORT_CALLS, TANK } from '../engine/economy';
 import type { GameState } from '../engine/types';
 import { requestDock, type GameStore } from '../game/SailingScene';
 import { nearestPortWithin } from '../game/ports-layout';
+import { isMuted, setMuted } from '../audio/audio';
 import './hud.css';
 
 const icon = (name: string) => `assets/ui/icon-${name}.png`;
+
+/** 작은 크림 버튼(타이틀·HUD). 음소거면 「소리」에 줄이 그어진다(상태는 localStorage 'ktrade.mute') */
+export function MuteButton() {
+  const [muted, set] = useState(isMuted);
+  const toggle = () => {
+    setMuted(!muted);
+    set(!muted);
+  };
+  return (
+    <button class={`btn sm cream mute${muted ? ' off' : ''}`} aria-pressed={muted} aria-label="소리 끄기" onClick={toggle}>
+      <span>소리</span>
+    </button>
+  );
+}
 
 export function Hud({ store }: { store: GameStore }) {
   const [s, setS] = useState<GameState | null>(store.get());
@@ -37,9 +52,10 @@ export function Hud({ store }: { store: GameStore }) {
           </span>
         </span>
         <span class="spacer" />
+        <MuteButton />
         <button class="btn sm cream" onClick={() => window.dispatchEvent(new CustomEvent('ktrade:log'))}><span>일지</span></button>
       </div>
-      {radio && (
+      {radio && !s.eventsDrawn.includes(radio.id) && (
         <div class="panel radio">
           <span class="tag imp"><img src={icon('speech')} alt="" />무전</span>
           <h2>{radio.titleKo}</h2>

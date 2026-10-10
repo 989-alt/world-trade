@@ -20,9 +20,10 @@
 .pg-acts { display: flex; gap: 14px; }
 .pg-btn {
   --s: 0.2; position: relative; display: grid; place-items: center; cursor: pointer; background: none; min-width: 200px;
+  height: calc(407px * var(--s)); padding: 0 0 calc(49px * var(--s)); place-content: center; /* 글자 중심 = 면 중심 y179 */
   color: var(--color-foreground); font-family: var(--font-display); font-size: 26px; line-height: 1;
-  border-style: solid; border-width: calc(179px * var(--s)) calc(190px * var(--s)) calc(228px * var(--s));
-  border-image: url(../../assets/ui/btn-cream.png) 179 190 228 fill / calc(179px * var(--s)) calc(190px * var(--s)) calc(228px * var(--s)) stretch;
+  border-style: solid; border-width: calc(150px * var(--s)) calc(190px * var(--s)) calc(150px * var(--s));
+  border-image: url(../../assets/ui/btn-cream.png) 150 190 150 fill / calc(150px * var(--s)) calc(190px * var(--s)) calc(150px * var(--s)) stretch;
 }
 .pg-btn.blue { border-image-source: url(../../assets/ui/btn-blue.png); color: var(--color-primary-foreground); }
 .pg-btn.orange { border-image-source: url(../../assets/ui/btn-orange.png); }

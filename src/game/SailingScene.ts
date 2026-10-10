@@ -1,15 +1,16 @@
 import Phaser from 'phaser';
-import { PORTS, PORT_BY_ID } from '../content/ports';
+import { PORTS } from '../content/ports';
 import type { PortId } from '../content/types';
+import { nearestPort } from '../engine/economy';
 import { nextEventFor, reduce, type Action } from '../engine/state';
 import type { GameState, Result } from '../engine/types';
-import { installAutopilot } from './autopilot';
+import { installAutopilot, routeBetween } from './autopilot';
 import { setDialogOpen } from './boot';
-import { maskFromRGBA, tryMove, type Mask } from './collision';
+import { maskFromRGBA, tryMove, withOcean, type Mask } from './collision';
 import { TouchPad } from './dpad';
 import { enteredZones } from './eventZones';
 import { exitPoint, nearestPortWithin } from './ports-layout';
-import { HEADINGS, WORLD_H, WORLD_W, dirFromKeys, headingOf, spriteKey, stepDelta, type Heading, type Pos } from './ship';
+import { HEADINGS, WORLD_H, WORLD_W, dirFromKeys, headingOf, pxDist, spriteKey, stepDelta, type Heading, type Pos } from './ship';
 
 /** 한 판 상태 저장소: dispatch → 순수 리듀서, subscribe → Preact HUD */
 type Listener = (s: GameState | null) => void;
@@ -58,11 +59,10 @@ export class SailingScene extends Phaser.Scene {
   private keyboard!: Record<'up' | 'down' | 'left' | 'right' | 'w' | 'a' | 's' | 'd', Phaser.Input.Keyboard.Key>;
   private heading: Heading | null = null;
   private towing = false;
-  private autopilot: { port: PortId; resolve: () => void; reject: (e: Error) => void } | null = null;
+  private autopilot: { port: PortId; path: Pos[]; i: number; resolve: () => void; reject: (e: Error) => void } | null = null;
 
   constructor() {
-    // CSP connect-src 'none' 이라 XHR 로더가 막힌다 → <img> 로 읽는다
-    super({ key: 'sailing', loader: { imageLoadType: 'HTMLImageElement' } });
+    super({ key: 'sailing' });
   }
 
   preload() {
@@ -88,7 +88,7 @@ export class SailingScene extends Phaser.Scene {
     [cv.width, cv.height] = [src.width, src.height];
     const ctx = cv.getContext('2d')!;
     ctx.drawImage(src, 0, 0);
-    this.mask = maskFromRGBA(cv.width, cv.height, ctx.getImageData(0, 0, cv.width, cv.height).data);
+    this.mask = withOcean(maskFromRGBA(cv.width, cv.height, ctx.getImageData(0, 0, cv.width, cv.height).data));
 
     const pins = this.add.graphics();
     pins.fillStyle(token('--color-accent')).lineStyle(3, token('--color-border'));
@@ -114,7 +114,12 @@ export class SailingScene extends Phaser.Scene {
     this.pad = new TouchPad(this, () => this.dock());
 
     installAutopilot({
-      sailTo: (port) => new Promise((resolve, reject) => (this.autopilot = { port, resolve, reject })),
+      // 가장 가까운 항구(방금 떠난 곳)의 출항점에서 고정 뱃길을 따라간다
+      sailTo: (port) =>
+        new Promise((resolve, reject) => {
+          const from = nearestPort(gameStore.get()!.shipPos).id;
+          this.autopilot = { port, path: routeBetween(from, port), i: 0, resolve, reject };
+        }),
       dock: () => this.dock(),
       state: () => gameStore.get(),
     });
@@ -126,7 +131,8 @@ export class SailingScene extends Phaser.Scene {
 
   update(_t: number, dtMs: number) {
     const s = gameStore.get();
-    if (!s || this.towing || s.stage !== 'main' || s.location !== 'sea' || document.body.classList.contains('ui-open')) return;
+    // !this.mask: 부팅 때 빈 바다로 뜬 인스턴스(startSailing 의 restart 전)는 움직이지 않는다
+    if (!s || !this.mask || this.towing || s.stage !== 'main' || s.location !== 'sea' || document.body.classList.contains('ui-open')) return;
     if (s.fuel <= 0) return this.tow();
 
     let dir: Pos;
@@ -136,7 +142,12 @@ export class SailingScene extends Phaser.Scene {
         this.autopilot = null;
         return ap.resolve();
       }
-      const t = toWorld(PORT_BY_ID[ap.port].mapPos);
+      while (ap.i < ap.path.length && pxDist(s.shipPos, ap.path[ap.i]) < 0.5) ap.i++;
+      if (ap.i >= ap.path.length) {
+        this.autopilot = null;
+        return ap.reject(new Error('route ended outside port'));
+      }
+      const t = toWorld(ap.path[ap.i]);
       const w = toWorld(s.shipPos);
       const len = Math.hypot(t.x - w.x, t.y - w.y);
       dir = { x: (t.x - w.x) / len, y: (t.y - w.y) / len };
@@ -155,7 +166,14 @@ export class SailingScene extends Phaser.Scene {
     this.setHeading(h);
 
     const prev = s.shipPos;
-    const next = tryMove(this.mask, prev, stepDelta(dir, Math.min(dtMs, 100)));
+    let delta = stepDelta(dir, Math.min(dtMs, 100));
+    const ap = this.autopilot;
+    if (ap && pxDist(prev, ap.path[ap.i]) <= Math.hypot(delta.x * WORLD_W, delta.y * WORLD_H)) {
+      // 웨이포인트에 딱 맞춰 선다(경로 검증과 같은 선분)
+      delta = { x: ap.path[ap.i].x - prev.x, y: ap.path[ap.i].y - prev.y };
+      ap.i++;
+    }
+    const next = tryMove(this.mask, prev, delta);
     if (next === prev) {
       if (this.autopilot) {
         this.autopilot.reject(new Error('blocked by land'));

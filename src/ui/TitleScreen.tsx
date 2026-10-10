@@ -1,9 +1,7 @@
-import { render } from 'preact';
 import { useState } from 'preact/hooks';
-import { newGame, reduce } from '../engine/state';
+import { newGame } from '../engine/state';
 import type { GameState } from '../engine/types';
-import { gameStore, resumeSailing, startSailing } from '../game/SailingScene';
-import { mountSailingUi } from './Hud';
+import { MuteButton } from './Hud';
 import './hud.css';
 import './title.css';
 
@@ -15,9 +13,9 @@ export function seedFrom(search: string): number {
 
 const seatOk = (v: string) => /^\d{1,2}$/.test(v) && +v >= 1 && +v <= 40;
 
-type Props = { hasSave: boolean; onStart: (state: GameState) => void; onContinue: () => void };
+type Props = { hasSave: boolean; onStart: (state: GameState) => void; onContinue: () => void; onTeacher: () => void };
 
-export function TitleScreen({ hasSave, onStart, onContinue }: Props) {
+export function TitleScreen({ hasSave, onStart, onContinue, onTeacher }: Props) {
   const [nickname, setNickname] = useState('');
   const [seat, setSeat] = useState('');
   const ready = nickname.trim() !== '' && seatOk(seat);
@@ -26,6 +24,10 @@ export function TitleScreen({ hasSave, onStart, onContinue }: Props) {
     <>
       <img class="art" src="assets/img/key-title.png" alt="" />
       <img class="logo" src="assets/ui/logo.png" alt="K-무역상" />
+      <div class="corner">
+        <MuteButton />
+        <button class="btn sm cream" onClick={onTeacher}><span>교사용</span></button>
+      </div>
       <div class="panel start">
         <div class="field">
           <input placeholder="닉네임" aria-label="닉네임" value={nickname} onInput={(e) => setNickname(e.currentTarget.value)} />
@@ -47,25 +49,4 @@ export function TitleScreen({ hasSave, onStart, onContinue }: Props) {
       </div>
     </>
   );
-}
-
-/**
- * 개발용 진입(index.ts 가 DEV 에서만 부른다): 타이틀 → 항해.
- * 프롤로그·항구 화면(T07)이 아직 없어 START_MAIN 으로 건너뛰고, 입항하면 바로 출항시킨다.
- */
-export function mountDev(): void {
-  const el = document.createElement('div');
-  el.className = 'title';
-  document.getElementById('ui')!.appendChild(el);
-  const onStart = (s: GameState) => {
-    render(null, el);
-    el.remove();
-    mountSailingUi(gameStore);
-    startSailing(reduce(s, { type: 'START_MAIN' }).state);
-  };
-  window.addEventListener('ktrade:docked', () => {
-    gameStore.dispatch({ type: 'LEAVE_PORT' });
-    resumeSailing();
-  });
-  render(<TitleScreen hasSave={false} onStart={onStart} onContinue={() => {}} />, el);
 }

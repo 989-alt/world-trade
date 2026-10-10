@@ -11,9 +11,9 @@ html, body {
 
 body { min-width: 1024px; min-height: 640px; }
 
-/* 1280x720 stage, letterbox-scaled to the viewport (fallback 1 before JS-free CSS calc). */
+/* 1280x720 stage, letterbox-scaled to the viewport. --stage-scale 은 단위 없는 수(main.tsx 가 resize 마다 넣는다) */
 :root {
-  --stage-scale: min(calc(100vw / 1280), calc(100vh / 720));
+  --stage-scale: 1;
 }
 
 .stage {

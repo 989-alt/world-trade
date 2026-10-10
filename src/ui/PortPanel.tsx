@@ -12,7 +12,7 @@ import { resumeSailing, type GameStore } from '../game/SailingScene';
 import { FactoryPanel } from './FactoryPanel';
 import { JudgmentDialog, priceLabel, type Entry } from './JudgmentDialog';
 import { RefuelPanel } from './RefuelPanel';
-import { TradePanel, tryBlockedExport, type Row } from './TradePanel';
+import { TradePanel, type Row } from './TradePanel';
 import './port.css';
 
 export const M2_TIP = '우리나라는 원유를 전량 수입합니다';
@@ -82,7 +82,8 @@ function PortCall({ store, state, close }: { store: GameStore; state: GameState;
   const choose = (r: Row) => {
     setSelected(r.key);
     setBlocked(r.mode === 'blocked');
-    if (r.mode === 'blocked') return void tryBlockedExport(store, r.good);
+    // M2: 잠긴 줄은 툴팁 문장만. 아무것도 dispatch 하지 않는다(PRD S6 — 시도 로그 0 이 스펙)
+    if (r.mode === 'blocked') return;
     if (home || entryFor(r)) return;
     const j = startJudgment({ port: port.id, good: r.good, dir: r.dir, shuffle: rng.shuffle, log: storeLog(store) });
     if (j.ok) entries.set(`${r.dir}:${r.good}`, { session: j.session, last: null });

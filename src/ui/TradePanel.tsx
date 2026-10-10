@@ -4,7 +4,7 @@ import type { GoodId } from '../content/types';
 import { CARGO_CAP, qtyOf } from '../engine/economy';
 import { customsFee, judgmentResult, tradeSlots, type Dir, type JudgmentSession } from '../engine/judgment';
 import type { Action } from '../engine/state';
-import type { GameState, Result } from '../engine/types';
+import type { GameState } from '../engine/types';
 import type { GameStore } from '../game/SailingScene';
 
 /** 시세표 한 줄. buy·sell 은 외국(부산 buy 는 판정 없음), load 는 부산 창고 → 배, blocked 는 M2 */
@@ -66,17 +66,6 @@ export function createGuard() {
       pending = false;
     },
   };
-}
-
-/**
- * M2: 부산 창고에 없는 결핍 자원 수출 시도 → 엔진 LOAD 가 export_attempt_blocked 를 남기고 거부한다.
- * gameStore.dispatch 는 거부 결과를 버리므로 로그가 붙은 상태만 직접 넣는다.
- */
-export function tryBlockedExport(store: Pick<GameStore, 'get' | 'set' | 'dispatch'>, good: GoodId): Result {
-  const before = store.get();
-  const r = store.dispatch({ type: 'LOAD', good, qty: 1 });
-  if (r.reason && r.state !== before) store.set(r.state);
-  return r;
 }
 
 type Props = { store: GameStore; state: GameState; row: Row; session?: JudgmentSession };
