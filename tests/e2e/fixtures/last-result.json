@@ -3,7 +3,7 @@
   "nickname": "고래",
   "seat": "3",
   "seed": 42,
-  "finishedAt": "2026-10-10T15:05:27.671Z",
+  "finishedAt": "2026-10-10T23:53:39.873Z",
   "summary": {
     "cash": 4208,
     "portCalls": 6,
@@ -299,7 +299,7 @@
     {
       "type": "refuel",
       "port": "saudi",
-      "fuel": 68.90134281994355,
+      "fuel": 68.90141149894816,
       "cost": 100,
       "t": 26
     },
@@ -549,7 +549,7 @@
     {
       "type": "refuel",
       "port": "busan",
-      "fuel": 99.05497897132005,
+      "fuel": 99.05459790749674,
       "cost": 0,
       "t": 58
     },
