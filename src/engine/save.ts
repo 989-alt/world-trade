@@ -1,10 +1,14 @@
-import { PORT_IDS } from '../content/types';
+import { GOOD_IDS, PORT_IDS } from '../content/types';
 import type { GameState } from './types';
 
 export const SAVE_KEY = 'ktrade.save.v1';
 
 export type KV = { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem?(k: string): void };
 export type LoadResult = { ok: true; state: GameState } | { ok: false; notice: 'save_corrupted' | 'version_mismatch' | 'none' };
+
+const isItem = (x: unknown) => !!x && typeof x === 'object' && (GOOD_IDS as readonly string[]).includes((x as { good: string }).good) && Number.isInteger((x as { qty: number }).qty) && (x as { qty: number }).qty > 0;
+const isEvent = (x: unknown) => !!x && typeof x === 'object' && typeof (x as { type: unknown }).type === 'string' && typeof (x as { t: unknown }).t === 'number';
+const isStr = (x: unknown) => typeof x === 'string';
 
 const STAGES = ['prologue', 'main', 'epilogue', 'done'];
 
@@ -74,6 +78,7 @@ export function loadGame(storage: KV | null = defaultStorage()): LoadResult {
     !(s.location === 'sea' || (PORT_IDS as readonly string[]).includes(s.location as string)) ||
     !s.shipPos || !unit(s.shipPos.x) || !unit(s.shipPos.y) ||
     !Array.isArray(s.eventQueue) || !Array.isArray(s.eventsDrawn) || !Array.isArray(s.depot) ||
+    !s.cargo.every(isItem) || !s.depot.every(isItem) || !s.log.every(isEvent) || !s.eventQueue.every(isStr) || !s.eventsDrawn.every(isStr) ||
     typeof s.fuel !== 'number' || typeof s.portCalls !== 'number' || typeof s.departures !== 'number'
   ) {
     return { ok: false, notice: 'save_corrupted' };

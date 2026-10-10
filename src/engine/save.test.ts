@@ -94,4 +94,12 @@ describe('save / load', () => {
       { departures: undefined }, { departures: '0' },
     ]) expect(bad(patch)).toEqual({ ok: false, notice: 'save_corrupted' });
   });
+
+  it('Y2 malformed array elements → save_corrupted', () => {
+    const bad = (patch: Record<string, unknown>) => loadGame(mem({ [SAVE_KEY]: JSON.stringify({ ...game(), ...patch }) }));
+    for (const patch of [
+      { cargo: [null] }, { depot: [{ good: 'x', qty: 1 }] }, { cargo: [{ good: 'sugar', qty: 0 }] },
+      { log: [1] }, { log: [null] }, { eventQueue: [1] }, { eventsDrawn: [null] },
+    ]) expect(bad(patch)).toEqual({ ok: false, notice: 'save_corrupted' });
+  });
 });

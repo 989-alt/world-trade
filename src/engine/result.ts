@@ -49,9 +49,9 @@ export function buildLedger(state: Pick<GameState, 'log'>): LedgerRow[] {
       if (e.type === 'port_call') portCall = e.turn;
       causes = {};
     } else if (e.type === 'depart') here = 'sea';
-    else if (e.type === 'judge_cause') causes[e.good] = `${AXIS_LABEL[e.answer]} ${e.correct ? '✓' : '✕'}`;
+    else if (e.type === 'judge_cause') causes[e.dir ? `${e.dir}:${e.good}` : e.good] = `${AXIS_LABEL[e.answer]} ${e.correct ? '✓' : '✕'}`;
     else if (e.type === 'trade' && here !== 'busan') {
-      const row = { portCall, exporter: place(e.from), good: GOOD_BY_ID[e.good].nameKo, importer: place(e.to), cause: causes[e.good] ?? '' };
+      const row = { portCall, exporter: place(e.from), good: GOOD_BY_ID[e.good].nameKo, importer: place(e.to), cause: causes[`${e.dir === 'transit' ? 'export' : e.dir}:${e.good}`] ?? causes[e.good] ?? '' };
       const key = `${row.portCall}|${row.exporter}|${row.good}|${row.importer}`;
       if (row.exporter === row.importer || seen.has(key)) continue;
       seen.add(key);

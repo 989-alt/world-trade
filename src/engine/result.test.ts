@@ -99,6 +99,20 @@ describe('buildLedger', () => {
   });
 });
 
+describe('buildLedger dir-keyed causes', () => {
+  it('same port call same good: import and export rows each take their own cause; foreign transit takes export cause', () => {
+    const log = mk([
+      { type: 'port_call', port: 'shanghai', turn: 1 },
+      { type: 'judge_cause', port: 'shanghai', good: 'semiconductor', answer: 'tech', correct: true, attempt: 1, dir: 'import' },
+      { type: 'judge_cause', port: 'shanghai', good: 'semiconductor', answer: 'resource', correct: true, attempt: 1, dir: 'export' },
+      { type: 'trade', from: 'shanghai', to: 'busan', good: 'semiconductor', qty: 1, price: 1, dir: 'import' },
+      { type: 'trade', from: 'busan', to: 'shanghai', good: 'semiconductor', qty: 1, price: 1, dir: 'export' },
+      { type: 'trade', from: 'singapore', to: 'shanghai', good: 'semiconductor', qty: 1, price: 1, dir: 'transit' },
+    ]);
+    expect(buildLedger({ log }).map((r) => r.cause)).toEqual(['기술 ✓', '자원 ✓', '자원 ✓']);
+  });
+});
+
 const fixture = (name: string): ResultJson & Record<string, unknown> =>
   JSON.parse(readFileSync(fileURLToPath(new URL(`../../scripts/fixtures/${name}`, import.meta.url)), 'utf8'));
 const base = fixture('result-pass.json');
