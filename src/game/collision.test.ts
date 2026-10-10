@@ -34,7 +34,7 @@ describe('isLand on 10 boundary coordinates', () => {
   it.each(cases)('(%f, %f) → land=%s', (x, y, land) => expect(isLand(m, f(x), f(y))).toBe(land));
 });
 
-describe('tryMove (선체 3점: 선수·중심·선미 = 진행 방향 ±HULL_PX)', () => {
+describe('tryMove (선수·중심 = 진행 방향 +HULL_PX·0, 선미는 보지 않음)', () => {
   it('sea → sea moves exactly by delta', () => {
     const p = { x: f(30.5), y: f(25.5) };
     const n = tryMove(m, p, { x: f(1), y: f(5) });
@@ -51,11 +51,17 @@ describe('tryMove (선체 3점: 선수·중심·선미 = 진행 방향 ±HULL_PX
     expect(tryMove(m, p, { x: 0, y: f(1) })).not.toBe(p); // 해안과 나란히는 간다
   });
 
-  it('stern on land → stops too (all three points must be sea)', () => {
+  it('stern on land does not block — the ship pivots and the stern follows the bow (fix round 1)', () => {
     const p = { x: f(30.5), y: f(25.5) }; // 해안까지 9.5px
-    expect(tryMove(m, p, { x: f(-1), y: 0 })).toBe(p); // 서쪽으로 돌면 선미(+14)가 육지
-    expect(hullOnLand(m, { x: f(29.5), y: f(25.5) }, { x: -1, y: 0 })).toBe(true);
-    expect(hullOnLand(m, { x: f(29.5), y: f(25.5) }, { x: 0, y: 0 })).toBe(false); // 중심만 보면 바다
+    expect(tryMove(m, p, { x: f(-1), y: 0 })).not.toBe(p); // 서쪽으로 돌면 선미(+14)는 육지지만 간다
+    expect(hullOnLand(m, { x: f(29.5), y: f(25.5) }, { x: -1, y: 0 })).toBe(true); // 3점으로 보면 걸렸을 자리
+  });
+
+  it('parallel to a coast at 10px: turning 90° away moves, turning toward the coast is blocked', () => {
+    const coast = { x: f(30), y: f(25.5) }; // 해안(x=40)에서 10px, 북쪽(↑)으로 나란히 가던 배
+    expect(tryMove(m, coast, { x: 0, y: f(-0.277) })).not.toBe(coast); // 나란히는 간다
+    expect(tryMove(m, coast, { x: f(-0.277), y: 0 })).not.toBe(coast); // 90° 바다 쪽(서) → 간다(선미는 육지)
+    expect(tryMove(m, coast, { x: f(0.277), y: 0 })).toBe(coast); // 90° 해안 쪽(동) → 선수가 육지라 제자리
   });
 
   it('no tunneling through a 1px wall even with a long jump', () => {

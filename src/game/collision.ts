@@ -62,13 +62,19 @@ export function hullOnLand(m: Mask, p: Pos, dir: Pos, half = HULL_PX): boolean {
   return isLand(m, p.x, p.y) || isLand(m, p.x + hx, p.y + hy) || isLand(m, p.x - hx, p.y - hy);
 }
 
-/** 경로 위 어느 점에서라도 선체 3점(선수·중심·선미) 중 하나가 육지면 제자리(같은 객체) 반환 — 미끄러짐·밀어내기·관통 없음 */
+/**
+ * 경로 위 어느 점에서라도 선수·중심 중 하나가 육지면 제자리(같은 객체) 반환 — 미끄러짐·밀어내기·관통 없음.
+ * 선미는 보지 않는다: 배는 제자리에서 돌고 선미는 선수가 지나온 길을 따라온다(fix round 1 판정 — 해안에 붙어 반대로 돌 때 갇히지 않게)
+ */
 export function tryMove(m: Mask, pos: Pos, delta: Pos): Pos {
   const dist = Math.hypot(delta.x * m.width, delta.y * m.height);
   const steps = Math.max(1, Math.ceil(dist / STEP_PX));
-  const dir = dist === 0 ? { x: 0, y: 0 } : { x: (delta.x * m.width) / dist, y: (delta.y * m.height) / dist };
+  const hx = dist === 0 ? 0 : (delta.x * HULL_PX) / dist;
+  const hy = dist === 0 ? 0 : (delta.y * HULL_PX) / dist;
   for (let i = 1; i <= steps; i++) {
-    if (hullOnLand(m, { x: pos.x + (delta.x * i) / steps, y: pos.y + (delta.y * i) / steps }, dir)) return pos;
+    const x = pos.x + (delta.x * i) / steps;
+    const y = pos.y + (delta.y * i) / steps;
+    if (isLand(m, x, y) || isLand(m, x + hx, y + hy)) return pos;
   }
   return { x: pos.x + delta.x, y: pos.y + delta.y };
 }

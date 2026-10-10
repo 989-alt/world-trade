@@ -56,7 +56,8 @@ export const routeBetween = (from: PortId, to: PortId): Pos[] => along(ROUTES[fr
  * 도착점 바로 앞의 출항점은 곧장 갈 수 있으면 건너뛴다(지나쳤다 되돌아오지 않게). 곧장 갈 뱃길 점이 없으면 가장 가까운 점
  */
 export function towPath(pos: Pos, to: PortId, m: Mask): Pos[] {
-  const clear = (a: Pos, b: Pos) => tryMove(m, a, { x: b.x - a.x, y: b.y - a.y }) !== a;
+  // 양방향 tryMove(선수·중심) = 선분 위 선체 3점 — 예인은 선미까지 바다로
+  const clear = (a: Pos, b: Pos) => tryMove(m, a, { x: b.x - a.x, y: b.y - a.y }) !== a && tryMove(m, b, { x: a.x - b.x, y: a.y - b.y }) !== b;
   const pts = (Object.keys(ROUTES) as PortId[]).flatMap((id) => ROUTES[id].map(([x, y], j) => ({ id, j, d: Math.hypot(x - pos.x, y - pos.y) })));
   pts.sort((a, b) => a.d - b.d);
   const best = pts.find(({ id, j }) => clear(pos, { x: ROUTES[id][j][0], y: ROUTES[id][j][1] })) ?? pts[0];
