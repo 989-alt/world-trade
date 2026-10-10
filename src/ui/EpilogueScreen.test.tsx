@@ -4,8 +4,8 @@ import { downloadFiles } from '../engine/export';
 import { EPILOGUE_COMPARE_SCREEN, checkResult } from '../engine/result';
 import { reduce } from '../engine/state';
 import type { GameState, LogEvent, LogInput } from '../engine/types';
-import { EpilogueScreen, compareBars, doExport, firstPhase, resultStats, sentenceGate } from './EpilogueScreen';
-import { checkManualRow } from './LedgerScreen';
+import { EpilogueScreen, compareBars, doExport, firstPhase, resultStats, sentenceGate, whyInit } from './EpilogueScreen';
+import { COUNTRIES, GOOD_NAMES, checkManualRow } from './LedgerScreen';
 import { scoreMindmap } from './MindmapForm';
 import { CSV_COLUMNS, TEACHER_PRIVACY } from './TeacherGuide';
 import guideSrc from './TeacherGuide.tsx?raw';
@@ -24,6 +24,19 @@ describe('sentence gate', () => {
     expect(sentenceGate(1, true, '나라마다 자원이 달라서 무역한다').canSubmit).toBe(true);
     expect(sentenceGate(1, true, '짧다').canSubmit).toBe(false);
     expect(sentenceGate(2, false, '나라마다 자원이 달라서 무역한다')).toEqual({ readOnly: true, canSubmit: false, canEdit: false });
+  });
+});
+
+describe('C7 문장 화면 복원', () => {
+  it('저장 로그의 sentence 수 = 제출 수, 선택 = 마지막 제출; 2건이면 잠금', () => {
+    expect(whyInit([])).toEqual({ submits: 0, axes: [], ending: null });
+    const one = withLog(fresh(), { type: 'sentence', text: '자원·기술이 나라마다 달라서 무역을 한다.', axes: ['resource', 'tech'], ending: 'differ' }).log;
+    expect(whyInit(one)).toEqual({ submits: 1, axes: ['resource', 'tech'], ending: 'differ' });
+    expect(sentenceGate(1, false, 'x'.repeat(10)).canEdit).toBe(true);
+    const two = withLog({ ...fresh(), log: one }, { type: 'sentence', text: '자연환경·자원에 차이가 있어서 무역을 한다.', axes: ['nature', 'resource'], ending: 'gap' }).log;
+    const w = whyInit(two);
+    expect(w).toEqual({ submits: 2, axes: ['nature', 'resource'], ending: 'gap' });
+    expect(sentenceGate(w.submits, false, '자연환경·자원에 차이가 있어서 무역을 한다.')).toEqual({ readOnly: true, canSubmit: false, canEdit: false });
   });
 });
 
@@ -47,6 +60,13 @@ describe('manual ledger row', () => {
     expect(checkManualRow('한국', '반도체', '일본').correct).toBe(true);
     expect(checkManualRow('사우디아라비아', '반도체', '대한민국').correct).toBe(false);
     expect(checkManualRow('일본', '로봇', '일본').correct).toBe(false);
+  });
+  it('C2 선택 상자 보기: 나라 12(대한민국 + 부산 밖 11항구), 품목 20, 모든 나라 이름이 판정에 걸린다', () => {
+    expect(COUNTRIES).toHaveLength(12);
+    expect(COUNTRIES[0]).toBe('대한민국');
+    expect(GOOD_NAMES).toHaveLength(20);
+    expect(checkManualRow('대한민국', '반도체', '일본').correct).toBe(true);
+    for (const c of COUNTRIES.slice(1)) expect(COUNTRIES.some((im) => GOOD_NAMES.some((g) => checkManualRow(c, g, im).correct)) || c === '싱가포르').toBe(true);
   });
 });
 

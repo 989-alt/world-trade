@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "nickname": "별",
+  "nickname": "고래",
   "seat": "3",
   "seed": 42,
-  "finishedAt": "2026-10-10T10:52:30.765Z",
+  "finishedAt": "2026-10-10T12:36:02.540Z",
   "summary": {
     "cash": 4208,
     "portCalls": 6,
@@ -118,7 +118,14 @@
       "cause": "지리적 위치 ✓"
     }
   ],
-  "manual": [],
+  "manual": [
+    {
+      "exporter": "사우디아라비아",
+      "good": "원유",
+      "importer": "대한민국",
+      "correct": true
+    }
+  ],
   "log": [
     {
       "type": "screen",
@@ -289,7 +296,7 @@
     {
       "type": "refuel",
       "port": "saudi",
-      "fuel": 70.35106970205203,
+      "fuel": 70.35237966080848,
       "cost": 100,
       "t": 26
     },
@@ -533,7 +540,7 @@
     {
       "type": "refuel",
       "port": "busan",
-      "fuel": 101.7091142098588,
+      "fuel": 101.7093182833936,
       "cost": 0,
       "t": 58
     },
@@ -718,64 +725,78 @@
       "t": 82
     },
     {
-      "type": "screen",
-      "name": "epilogue-compare",
+      "type": "ledger_manual",
+      "exporter": "사우디아라비아",
+      "good": "원유",
+      "importer": "대한민국",
+      "correct": true,
       "t": 83
     },
     {
-      "type": "sentence",
-      "text": "나라마다 자연환경과 자원, 기술이 달라서 잘 만드는 것이 다르기 때문에 무역을 한다.",
+      "type": "screen",
+      "name": "epilogue-compare",
       "t": 84
+    },
+    {
+      "type": "sentence",
+      "text": "자연환경·자원·기술이 나라마다 달라서 무역을 한다.",
+      "axes": [
+        "nature",
+        "resource",
+        "tech"
+      ],
+      "ending": "differ",
+      "t": 85
     },
     {
       "type": "screen",
       "name": "epilogue-mind",
-      "t": 85
+      "t": 86
     },
     {
       "type": "mindmap",
       "slot": "meaning",
       "answer": "무역",
       "correct": true,
-      "t": 86
+      "t": 87
     },
     {
       "type": "mindmap",
       "slot": "import",
       "answer": "수입",
       "correct": true,
-      "t": 87
+      "t": 88
     },
     {
       "type": "mindmap",
       "slot": "export",
       "answer": "수출",
       "correct": true,
-      "t": 88
+      "t": 89
     },
     {
       "type": "mindmap",
       "slot": "cause",
       "answer": "차이",
       "correct": true,
-      "t": 89
+      "t": 90
     },
     {
       "type": "mindmap",
       "slot": "interdependence",
       "answer": "상호의존",
       "correct": true,
-      "t": 90
+      "t": 91
     },
     {
       "type": "screen",
       "name": "epilogue-result",
-      "t": 91
+      "t": 92
     },
     {
       "type": "stage",
       "stage": "done",
-      "t": 92
+      "t": 93
     }
   ]
 }

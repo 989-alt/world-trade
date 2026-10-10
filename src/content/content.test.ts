@@ -5,7 +5,9 @@ import { PORTS, START_DEPOT, START_CASH, REFUEL_PRICE } from './ports';
 import { RECIPES } from './recipes';
 import { EVENTS } from './events';
 import { FEEDBACK, whyBuys, whyRelays, whySells, shortageOption } from './feedback';
-import { MINDMAP_SLOTS, isAccepted, normalize } from './mindmap';
+import { MINDMAP_SLOTS, isAccepted, normalize, slotOptions } from './mindmap';
+import { composeSentence } from './sentence';
+import { checkResult } from '../engine/result';
 import { PROLOGUE_STEPS, MINI_SIM } from './prologue';
 
 const RAW_ENERGY = ['crude-oil', 'natural-gas', 'graphite', 'nickel'];
@@ -211,5 +213,31 @@ describe('mindmap / feedback / prologue', () => {
     expect(words).toEqual(expect.arrayContaining(['수입', '수출']));
     expect(MINI_SIM.eachMakes).toEqual({ a: 2, b: 2 });
     expect(MINI_SIM.specializeAndTrade).toEqual({ a: 3, b: 3 });
+  });
+});
+
+describe('C3·C4 보기 조합', () => {
+  const s4 = (text: string) =>
+    checkResult({ log: [{ t: 1, type: 'sentence', text }], ledger: [], invariants: { cashStart: 1, maxRefuel: 0, portCalls: 0, tank: 1, maxLegFuel: 0 } }).S4.pass;
+  it('C3 축은 교과 순서로 · 연결, 맺음말에 넣는다. 정답 조합은 S4 통과, 오답 맺음말·축 1개는 실패', () => {
+    expect(composeSentence(['tech', 'resource'], 'differ')).toBe('자원·기술이 나라마다 달라서 무역을 한다.');
+    expect(composeSentence(['nature', 'geo'], 'differ')).toBe('자연환경·지리적 위치가 나라마다 달라서 무역을 한다.');
+    expect(composeSentence(['capital', 'tech'], 'gap')).toBe('자본·기술에 차이가 있어서 무역을 한다.');
+    expect(composeSentence([], 'differ')).toBe('');
+    expect(composeSentence(['tech'], null)).toBe('');
+    expect(s4(composeSentence(['resource', 'tech'], 'differ'))).toBe(true);
+    expect(s4(composeSentence(['nature', 'capital', 'geo'], 'gap'))).toBe(true);
+    expect(s4(composeSentence(['resource', 'tech'], 'same'))).toBe(false);
+    expect(s4(composeSentence(['tech'], 'differ'))).toBe(false);
+  });
+  it('C4 칸마다 보기 4개(서로 다름, 정답 정확히 1개), seed 셔플은 결정적', () => {
+    MINDMAP_SLOTS.forEach((slot, i) => {
+      const o = slotOptions(42, i);
+      expect(new Set(o).size).toBe(4);
+      expect(o.filter((x) => isAccepted(slot.id, x))).toEqual([slot.accepted[0]]);
+      expect(slotOptions(42, i)).toEqual(o);
+      expect([...o].sort()).toEqual([...slot.options].sort());
+    });
+    expect(MINDMAP_SLOTS.map((_, i) => slotOptions(1, i).join())).not.toEqual(MINDMAP_SLOTS.map((_, i) => slotOptions(2, i).join()));
   });
 });

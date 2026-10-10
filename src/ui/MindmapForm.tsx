@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { MINDMAP_SLOTS, isAccepted, normalize } from '../content/mindmap';
+import { MINDMAP_SLOTS, isAccepted, normalize, slotOptions } from '../content/mindmap';
 import type { LogInput } from '../engine/types';
 import './epilogue.css';
 
@@ -14,9 +14,9 @@ export function scoreMindmap(answers: Record<string, string>): SlotScore[] {
   });
 }
 
-type Props = { onLog: (e: LogInput) => void; onDone: () => void };
+type Props = { seed: number; onLog: (e: LogInput) => void; onDone: () => void };
 
-export function MindmapForm({ onLog, onDone }: Props) {
+export function MindmapForm({ seed, onLog, onDone }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [scores, setScores] = useState<SlotScore[] | null>(null);
   const submit = () => {
@@ -34,15 +34,22 @@ export function MindmapForm({ onLog, onDone }: Props) {
           return (
             <div key={s.id} class={`ep-slot${sc ? (sc.correct ? ' ok' : ' wrong') : ''}`}>
               <span>{s.labelKo}</span>
-              <input class="ep-in" value={answers[s.id] ?? ''} disabled={!!scores} aria-label={s.labelKo}
-                onInput={(e) => setAnswers({ ...answers, [s.id]: (e.target as HTMLInputElement).value })} />
+              <div role="radiogroup" aria-label={s.labelKo} class="ep-chips col">
+                {slotOptions(seed, i).map((o) => (
+                  <label key={o} class="ep-chip">
+                    <input type="radio" name={`mind-${s.id}`} checked={answers[s.id] === o} disabled={!!scores}
+                      onChange={() => setAnswers({ ...answers, [s.id]: o })} />
+                    {o}
+                  </label>
+                ))}
+              </div>
               {sc && !sc.correct && <span class="ep-reveal">{sc.reveal}</span>}
             </div>
           );
         })}
       </div>
       <div class="ep-acts">
-        {!scores && <button type="button" class="ep-btn" onClick={submit}>확인</button>}
+        {!scores && <button type="button" class="ep-btn" disabled={MINDMAP_SLOTS.some((s) => !answers[s.id])} onClick={submit}>확인</button>}
         {scores && <button type="button" class="ep-btn orange" onClick={onDone}>결과 보기</button>}
       </div>
     </>

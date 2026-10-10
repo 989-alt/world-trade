@@ -3,7 +3,7 @@ import { GOODS } from '../content/goods';
 import { PORTS } from '../content/ports';
 import { normalize } from '../content/mindmap';
 import type { PortId } from '../content/types';
-import { buildLedger } from '../engine/result';
+import { KOREA, buildLedger } from '../engine/result';
 import type { GameState, LogInput } from '../engine/types';
 import './epilogue.css';
 
@@ -24,6 +24,10 @@ export function checkManualRow(exporter: string, good: string, importer: string)
   return { complete, correct };
 }
 
+/** 선택 상자 보기: 나라 = 대한민국 + 부산 밖 항구, 품목 = 상품 20 */
+export const COUNTRIES = [KOREA, ...PORTS.filter((p) => p.id !== 'busan').map((p) => p.nameKo)];
+export const GOOD_NAMES = GOODS.map((g) => g.nameKo);
+
 type Props = { state: Pick<GameState, 'log'>; onLog: (e: LogInput) => void; onDone: () => void };
 
 export function LedgerScreen({ state, onLog, onDone }: Props) {
@@ -36,9 +40,12 @@ export function LedgerScreen({ state, onLog, onDone }: Props) {
     if (!chk.complete || manual.length >= 1) return;
     onLog({ type: 'ledger_manual', ...f, correct: chk.correct });
   };
-  const bind = (k: keyof typeof f, label: string) => (
-    <input class="ep-in" placeholder={label} aria-label={label} value={f[k]} disabled={manual.length > 0}
-      onInput={(e) => setF({ ...f, [k]: (e.target as HTMLInputElement).value })} />
+  const bind = (k: keyof typeof f, label: string, opts: string[]) => (
+    <select class="ep-in" aria-label={label} value={f[k]} disabled={manual.length > 0}
+      onChange={(e) => setF({ ...f, [k]: e.currentTarget.value })}>
+      <option value="" disabled>{label}</option>
+      {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+    </select>
   );
   return (
     <>
@@ -55,7 +62,7 @@ export function LedgerScreen({ state, onLog, onDone }: Props) {
         </tbody>
       </table>
       <div class="ep-manual">
-        {bind('exporter', '수출국')}{bind('good', '품목')}{bind('importer', '수입국')}
+        {bind('exporter', '수출국', COUNTRIES)}{bind('good', '품목', GOOD_NAMES)}{bind('importer', '수입국', COUNTRIES)}
         <button type="button" class="ep-btn cream" disabled={!chk.complete || manual.length > 0} onClick={add}>추가</button>
       </div>
       <button type="button" class="ep-btn orange" onClick={onDone}>다음</button>

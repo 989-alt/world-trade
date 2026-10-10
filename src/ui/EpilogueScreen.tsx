@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
+import { AXES, AXIS_LABEL, type Axis } from '../content/types';
+import { ENDINGS, composeSentence, type EndingId } from '../content/sentence';
 import { buildLedger, computeGrade, EPILOGUE_COMPARE_SCREEN } from '../engine/result';
 import { buildResult, downloadFiles, type ExportResult } from '../engine/export';
 import type { Action } from '../engine/state';
@@ -9,7 +11,7 @@ import './epilogue.css';
 
 export const SENTENCE_MIN = 10;
 
-/** 까닭 문장 입력 규칙: 10자 이상만 제출, 제출 뒤 고치기 1회, 그 뒤 잠금 */
+/** 까닭 문장 규칙: 문장이 만들어져야(10자 이상) 제출, 제출 뒤 고치기 1회, 그 뒤 잠금 */
 export function sentenceGate(submits: number, editing: boolean, text: string) {
   const long = Array.from(text.trim()).length >= SENTENCE_MIN;
   const open = submits === 0 || (submits === 1 && editing);
@@ -42,9 +44,19 @@ export function compareBars(log: LogEvent[]) {
   };
 }
 
+/** 저장 로그에서 문장 화면 복원(C7): 제출 수 = sentence 로그 수(한 판에 에필로그 1번), 선택 = 마지막 제출 */
+export function whyInit(log: LogEvent[]) {
+  const s = log.flatMap((e) => (e.type === 'sentence' ? [e] : []));
+  const last = s[s.length - 1];
+  return { submits: s.length, axes: last?.axes ?? [], ending: (last?.ending ?? null) as EndingId | null };
+}
+
 function WhyScreen({ log, onLog, onDone }: { log: LogEvent[]; onLog: (e: LogInput) => void; onDone: () => void }) {
-  const [text, setText] = useState('');
-  const [submits, setSubmits] = useState(0);
+  const [init] = useState(() => whyInit(log));
+  const [axes, setAxes] = useState<Axis[]>(init.axes);
+  const [ending, setEnding] = useState<EndingId | null>(init.ending);
+  const text = composeSentence(axes, ending);
+  const [submits, setSubmits] = useState(init.submits);
   const [editing, setEditing] = useState(false);
   useEffect(() => { onLog({ type: 'screen', name: EPILOGUE_COMPARE_SCREEN }); }, []);
   const g = sentenceGate(submits, editing, text);
@@ -52,7 +64,7 @@ function WhyScreen({ log, onLog, onDone }: { log: LogEvent[]; onLog: (e: LogInpu
   const top = Math.max(Math.abs(b.tradeAvg), 1);
   const submit = () => {
     if (!g.canSubmit) return;
-    onLog({ type: 'sentence', text: text.trim() });
+    onLog({ type: 'sentence', text, axes, ending: ending! });
     setSubmits(submits + 1);
     setEditing(false);
   };
@@ -61,8 +73,24 @@ function WhyScreen({ log, onLog, onDone }: { log: LogEvent[]; onLog: (e: LogInpu
       <div class="ep-two">
         <div class="ep-col">
           <h2 class="ep-h">무역이 생기는 까닭</h2>
-          <textarea class="ep-text" value={text} readOnly={g.readOnly} aria-label="무역이 생기는 까닭"
-            onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} />
+          <div class="ep-chips">
+            {AXES.map((a) => (
+              <label key={a} class="ep-chip">
+                <input type="checkbox" checked={axes.includes(a)} disabled={g.readOnly}
+                  onChange={() => setAxes(axes.includes(a) ? axes.filter((x) => x !== a) : [...axes, a])} />
+                {AXIS_LABEL[a]}
+              </label>
+            ))}
+          </div>
+          <div class="ep-chips">
+            {ENDINGS.map((x) => (
+              <label key={x.id} class="ep-chip">
+                <input type="radio" name="ending" checked={ending === x.id} disabled={g.readOnly} onChange={() => setEnding(x.id)} />
+                {x.labelKo}
+              </label>
+            ))}
+          </div>
+          <p class="ep-text" aria-label="무역이 생기는 까닭">{text}</p>
           <div class="ep-acts">
             <button type="button" class="ep-btn" disabled={!g.canSubmit} onClick={submit}>제출</button>
             {g.canEdit && <button type="button" class="ep-btn cream" onClick={() => setEditing(true)}>고치기</button>}
@@ -147,7 +175,7 @@ export function EpilogueScreen({ state, dispatch, onLog, onDone }: Props) {
       <div class="ep-panel">
         {phase === 'ledger' && <LedgerScreen state={state} onLog={onLog} onDone={next} />}
         {phase === 'why' && <WhyScreen log={state.log} onLog={onLog} onDone={next} />}
-        {phase === 'mind' && <MindmapForm onLog={onLog} onDone={next} />}
+        {phase === 'mind' && <MindmapForm seed={state.seed} onLog={onLog} onDone={next} />}
       </div>
     </div>
   );

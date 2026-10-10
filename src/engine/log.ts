@@ -9,7 +9,7 @@ export type LogEvent =
   | { t: number; type: 'event_choice'; event: string; choice: string }
   | { t: number; type: 'autarky'; turn: number }
   | { t: number; type: 'export_attempt_blocked'; good: GoodId }
-  | { t: number; type: 'sentence'; text: string }
+  | { t: number; type: 'sentence'; text: string; axes?: Axis[]; ending?: string }
   | { t: number; type: 'mindmap'; slot: string; answer: string; correct: boolean }
   | { t: number; type: 'screen'; name: string }
   | { t: number; type: 'ledger_manual'; exporter: string; good: string; importer: string; correct: boolean }

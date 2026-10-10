@@ -63,7 +63,8 @@ async function playthrough(page: Page): Promise<Run> {
   const sailMs: Partial<Record<string, number>> = {};
   const go = async (turn: number, port: PortId) => (sailMs[`${turn}-${port}`] = await sail(page, port));
 
-  await newGame(page);
+  await newGame(page, SHOTS);
+  expect((await state(page)).profile).toEqual({ nickname: '고래', seat: '3' });
 
   // 부산(출발 전): M2 잠금 줄 — 비활성, 눌러도 툴팁만, export_attempt_blocked 0 (T10 판정: 클릭은 아무것도 dispatch 하지 않는다)
   const off = page.locator('.port-ui .row.off');
@@ -158,9 +159,39 @@ async function playthrough(page: Page): Promise<Run> {
 
   // 에필로그: 일지 → 까닭 문장 → 생각 그물 → 결과
   await expect(page.locator('.ep-root .ep-table')).toBeVisible();
+  // C2 수동 1행: 선택 상자 3칸
+  await page.getByLabel('수출국').selectOption('사우디아라비아');
+  await page.getByLabel('품목').selectOption('원유');
+  await page.getByLabel('수입국').selectOption('대한민국');
+  await page.screenshot({ path: `${SHOTS}c5-ledger.png` });
+  await page.getByRole('button', { name: '추가' }).click();
+  expect(await logOf(page, 'ledger_manual')).toEqual([expect.objectContaining({ exporter: '사우디아라비아', good: '원유', importer: '대한민국', correct: true })]);
   await page.getByRole('button', { name: '다음' }).click();
-  await page.getByLabel('무역이 생기는 까닭').fill('나라마다 자연환경과 자원, 기술이 달라서 잘 만드는 것이 다르기 때문에 무역을 한다.');
-  await page.getByRole('button', { name: '제출' }).click();
+  // C3 까닭 문장: 축 칩 + 맺음말
+  const submit = page.getByRole('button', { name: '제출' });
+  for (const a of ['자연환경', '자원', '기술']) await page.getByRole('checkbox', { name: a }).check();
+  await expect(submit).toBeDisabled();
+  await page.getByRole('radio', { name: '…이 나라마다 달라서 무역을 한다' }).check();
+  await expect(page.getByLabel('무역이 생기는 까닭')).toHaveText('자연환경·자원·기술이 나라마다 달라서 무역을 한다.');
+  await page.screenshot({ path: `${SHOTS}c5-sentence.png` });
+  await submit.click();
+  expect((await logOf(page, 'sentence')).map((e) => (e as { text: string }).text)).toEqual(['자연환경·자원·기술이 나라마다 달라서 무역을 한다.']);
+  // C7 같은 저장소 새 page 로 이어하기 → 일지 → 문장 화면: 제출한 칩·맺음말 복원, 고치기 1회만 남음
+  const p3 = await page.context().newPage();
+  await p3.goto(GAME_URL);
+  await p3.getByRole('button', { name: '이어하기' }).click();
+  await p3.getByRole('button', { name: '다음' }).click();
+  for (const a of ['자연환경', '자원', '기술']) await expect(p3.getByRole('checkbox', { name: a })).toBeChecked();
+  await expect(p3.getByRole('checkbox', { name: '자본' })).not.toBeChecked();
+  await expect(p3.getByRole('radio', { name: '…이 나라마다 달라서 무역을 한다' })).toBeChecked();
+  await expect(p3.getByLabel('무역이 생기는 까닭')).toHaveText('자연환경·자원·기술이 나라마다 달라서 무역을 한다.');
+  await expect(p3.getByRole('button', { name: '제출' })).toBeDisabled();
+  await p3.getByRole('button', { name: '고치기' }).click();
+  await p3.getByRole('checkbox', { name: '자본' }).check();
+  await p3.getByRole('button', { name: '제출' }).click();
+  await expect(p3.getByRole('button', { name: '고치기' })).toHaveCount(0);
+  await expect(p3.getByRole('checkbox', { name: '자본' })).toBeDisabled();
+  await p3.close();
   await page.getByRole('button', { name: '다음' }).click();
   const mind: Record<string, string> = {
     '나라와 나라 사이에 물자나 서비스를 사고파는 것': '무역',
@@ -169,8 +200,15 @@ async function playthrough(page: Page): Promise<Run> {
     '무역하는 까닭: 나라마다 자연환경·자원·자본·기술이 ○○': '차이',
     '서로 잘하는 것으로 협력하는 관계': '상호의존',
   };
-  for (const [k, v] of Object.entries(mind)) await page.getByLabel(k, { exact: true }).fill(v);
-  await page.getByRole('button', { name: '확인' }).click();
+  const ok = page.getByRole('button', { name: '확인' });
+  for (const [k, v] of Object.entries(mind)) {
+    await expect(ok).toBeDisabled();
+    const group = page.getByRole('radiogroup', { name: k, exact: true });
+    await expect(group.getByRole('radio')).toHaveCount(4);
+    await group.getByRole('radio', { name: v, exact: true }).check();
+  }
+  await page.screenshot({ path: `${SHOTS}c5-mindmap.png` });
+  await ok.click();
   await page.getByRole('button', { name: '결과 보기' }).click();
   await expect(page.locator('.ep-panel.result')).toBeVisible();
 

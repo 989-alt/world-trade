@@ -19,12 +19,16 @@ export const view = (page: Page) => page.evaluate(() => (window as unknown as W)
 export const logOf = async (page: Page, type: string) => (await state(page)).log.filter((e) => e.type === type);
 
 /** 저장 지우고 타이틀 → 닉네임·번호 → 프롤로그 3화면 → 부산 항구 화면 */
-export async function newGame(page: Page): Promise<void> {
+export async function newGame(page: Page, shots?: string): Promise<void> {
   await page.goto(URL);
   await page.evaluate(() => localStorage.clear());
   await page.goto(URL);
-  await page.getByLabel('닉네임').fill('별');
-  await page.getByLabel('번호').fill('3');
+  const start = page.getByRole('button', { name: '시작' });
+  await expect(start).toBeDisabled();
+  await page.getByLabel('닉네임').selectOption('고래');
+  await expect(start).toBeDisabled();
+  await page.getByLabel('번호').selectOption('3');
+  if (shots) await page.screenshot({ path: `${shots}c5-title.png` });
   await page.getByRole('button', { name: '시작' }).click();
   await page.getByRole('button', { name: '비단을 산다' }).click();
   await page.getByRole('button', { name: '다음' }).click();

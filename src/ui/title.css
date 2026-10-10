@@ -6,4 +6,4 @@
 .title .start { left: 50%; bottom: 40px; transform: translateX(-50%); width: 540px; display: grid; gap: 12px; padding: 12px 14px 14px; }
 .title .start .btn { width: 100%; }
 .field { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }
-.field input { height: 56px; border: 3px solid var(--color-border); border-radius: 14px; font: inherit; font-size: 20px; padding: 0 16px; background: var(--color-input); color: var(--color-foreground); min-width: 0; }
+.field select { height: 56px; border: 3px solid var(--color-border); border-radius: 14px; font: inherit; font-size: 20px; padding: 0 16px; background: var(--color-input); color: var(--color-foreground); min-width: 0; }

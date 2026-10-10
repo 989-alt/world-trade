@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { NICKNAMES } from '../content/nicknames';
 import { newGame } from '../engine/state';
 import type { GameState } from '../engine/types';
 import { MuteButton } from './Hud';
@@ -11,15 +12,18 @@ export function seedFrom(search: string): number {
   return Number.isInteger(v) && v > 0 ? v : Date.now();
 }
 
-const seatOk = (v: string) => /^\d{1,2}$/.test(v) && +v >= 1 && +v <= 40;
+const SEATS = Array.from({ length: 40 }, (_, i) => String(i + 1));
+
+/** 닉네임·번호 둘 다 골라야 시작 */
+export const canStart = (nickname: string, seat: string) => nickname !== '' && seat !== '';
 
 type Props = { hasSave: boolean; onStart: (state: GameState) => void; onContinue: () => void; onTeacher: () => void };
 
 export function TitleScreen({ hasSave, onStart, onContinue, onTeacher }: Props) {
   const [nickname, setNickname] = useState('');
   const [seat, setSeat] = useState('');
-  const ready = nickname.trim() !== '' && seatOk(seat);
-  const start = () => ready && onStart(newGame(seedFrom(window.location.search), { nickname: nickname.trim(), seat }));
+  const ready = canStart(nickname, seat);
+  const start = () => ready && onStart(newGame(seedFrom(window.location.search), { nickname, seat }));
   return (
     <>
       <img class="art" src="assets/img/key-title.png" alt="" />
@@ -30,19 +34,14 @@ export function TitleScreen({ hasSave, onStart, onContinue, onTeacher }: Props) 
       </div>
       <div class="panel start">
         <div class="field">
-          <input placeholder="닉네임" aria-label="닉네임" value={nickname} onInput={(e) => setNickname(e.currentTarget.value)} />
-          <input
-            placeholder="번호"
-            aria-label="번호"
-            inputMode="numeric"
-            maxLength={2}
-            value={seat}
-            onInput={(e) => {
-              const v = e.currentTarget.value.replace(/\D/g, '').slice(0, 2);
-              e.currentTarget.value = v;
-              setSeat(v);
-            }}
-          />
+          <select aria-label="닉네임" value={nickname} onChange={(e) => setNickname(e.currentTarget.value)}>
+            <option value="" disabled>닉네임</option>
+            {NICKNAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <select aria-label="번호" value={seat} onChange={(e) => setSeat(e.currentTarget.value)}>
+            <option value="" disabled>번호</option>
+            {SEATS.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
         </div>
         <button class="btn lg" disabled={!ready} onClick={start}><span>시작</span></button>
         <button class="btn cream" disabled={!hasSave} onClick={onContinue}><span>이어하기</span></button>
