@@ -1,0 +1,711 @@
+{
+  "version": 1,
+  "nickname": "별",
+  "seat": "3",
+  "seed": 42,
+  "finishedAt": "2026-10-10T06:17:22.131Z",
+  "summary": {
+    "cash": 3904,
+    "portCalls": 6,
+    "factoryLevel": 3,
+    "judgeDir": {
+      "correct": 10,
+      "total": 10
+    },
+    "judgeCause": {
+      "firstTryCorrect": 8,
+      "total": 10
+    },
+    "ledgerRows": 10
+  },
+  "grade": {
+    "grade": "A",
+    "nameKo": "대상단",
+    "causeAccuracy": 0.8,
+    "ledgerRows": 10,
+    "sentenceOk": true
+  },
+  "invariants": {
+    "cashStart": 1000,
+    "maxRefuel": 150,
+    "portCalls": 6,
+    "tank": 300,
+    "maxLegFuel": 289.5078536067718
+  },
+  "ledger": [
+    {
+      "portCall": 1,
+      "exporter": "대한민국",
+      "good": "반도체",
+      "importer": "상하이",
+      "cause": "기술 ✓"
+    },
+    {
+      "portCall": 1,
+      "exporter": "상하이",
+      "good": "흑연",
+      "importer": "대한민국",
+      "cause": "자원 ✓"
+    },
+    {
+      "portCall": 2,
+      "exporter": "대한민국",
+      "good": "무선 통신 기기",
+      "importer": "사우디아라비아",
+      "cause": "기술 ✓"
+    },
+    {
+      "portCall": 2,
+      "exporter": "사우디아라비아",
+      "good": "원유",
+      "importer": "대한민국",
+      "cause": "자원 ✓"
+    },
+    {
+      "portCall": 3,
+      "exporter": "상하이",
+      "good": "흑연",
+      "importer": "싱가포르",
+      "cause": "지리적 위치 ✓"
+    },
+    {
+      "portCall": 3,
+      "exporter": "사우디아라비아",
+      "good": "원유",
+      "importer": "싱가포르",
+      "cause": "지리적 위치 ✓"
+    },
+    {
+      "portCall": 5,
+      "exporter": "대한민국",
+      "good": "반도체",
+      "importer": "일본",
+      "cause": "자원 ✓"
+    },
+    {
+      "portCall": 5,
+      "exporter": "일본",
+      "good": "로봇",
+      "importer": "대한민국",
+      "cause": "기술 ✓"
+    },
+    {
+      "portCall": 6,
+      "exporter": "대한민국",
+      "good": "화장품",
+      "importer": "싱가포르",
+      "cause": "지리적 위치 ✓"
+    },
+    {
+      "portCall": 6,
+      "exporter": "일본",
+      "good": "로봇",
+      "importer": "싱가포르",
+      "cause": "지리적 위치 ✓"
+    }
+  ],
+  "log": [
+    {
+      "type": "screen",
+      "name": "prologue-byeokran",
+      "t": 1
+    },
+    {
+      "type": "screen",
+      "name": "prologue-minisim",
+      "t": 2
+    },
+    {
+      "type": "screen",
+      "name": "prologue-busan",
+      "t": 3
+    },
+    {
+      "type": "stage",
+      "stage": "main",
+      "t": 4
+    },
+    {
+      "type": "screen",
+      "name": "game",
+      "t": 5
+    },
+    {
+      "type": "screen",
+      "name": "port-busan",
+      "t": 6
+    },
+    {
+      "type": "load",
+      "good": "semiconductor",
+      "qty": 2,
+      "t": 7
+    },
+    {
+      "type": "buy_home",
+      "good": "phone",
+      "qty": 2,
+      "price": 180,
+      "t": 8
+    },
+    {
+      "type": "depart",
+      "port": "busan",
+      "departure": 1,
+      "t": 9
+    },
+    {
+      "type": "screen",
+      "name": "event-steel-dumping",
+      "t": 10
+    },
+    {
+      "type": "event_choice",
+      "event": "steel-dumping",
+      "choice": "tariff",
+      "t": 11
+    },
+    {
+      "type": "port_call",
+      "port": "shanghai",
+      "turn": 1,
+      "t": 12
+    },
+    {
+      "type": "screen",
+      "name": "port-shanghai",
+      "t": 13
+    },
+    {
+      "type": "judge_dir",
+      "port": "shanghai",
+      "good": "semiconductor",
+      "answer": "export",
+      "correct": true,
+      "attempt": 1,
+      "t": 14
+    },
+    {
+      "type": "judge_cause",
+      "port": "shanghai",
+      "good": "semiconductor",
+      "answer": "nature",
+      "correct": false,
+      "attempt": 1,
+      "t": 15
+    },
+    {
+      "type": "judge_cause",
+      "port": "shanghai",
+      "good": "semiconductor",
+      "answer": "tech",
+      "correct": true,
+      "attempt": 2,
+      "t": 16
+    },
+    {
+      "type": "trade",
+      "from": "busan",
+      "to": "shanghai",
+      "good": "semiconductor",
+      "qty": 2,
+      "price": 560,
+      "dir": "export",
+      "fee": 112,
+      "t": 17
+    },
+    {
+      "type": "judge_dir",
+      "port": "shanghai",
+      "good": "graphite",
+      "answer": "import",
+      "correct": true,
+      "attempt": 1,
+      "t": 18
+    },
+    {
+      "type": "judge_cause",
+      "port": "shanghai",
+      "good": "graphite",
+      "answer": "resource",
+      "correct": true,
+      "attempt": 1,
+      "t": 19
+    },
+    {
+      "type": "trade",
+      "from": "shanghai",
+      "to": "busan",
+      "good": "graphite",
+      "qty": 2,
+      "price": 30,
+      "dir": "import",
+      "t": 20
+    },
+    {
+      "type": "depart",
+      "port": "shanghai",
+      "departure": 2,
+      "t": 21
+    },
+    {
+      "type": "screen",
+      "name": "event-low-tariff-promise",
+      "t": 22
+    },
+    {
+      "type": "event_choice",
+      "event": "low-tariff-promise",
+      "choice": "promise",
+      "t": 23
+    },
+    {
+      "type": "port_call",
+      "port": "saudi",
+      "turn": 2,
+      "t": 24
+    },
+    {
+      "type": "screen",
+      "name": "port-saudi",
+      "t": 25
+    },
+    {
+      "type": "refuel",
+      "port": "saudi",
+      "fuel": 264.51620747449846,
+      "cost": 100,
+      "t": 26
+    },
+    {
+      "type": "judge_dir",
+      "port": "saudi",
+      "good": "phone",
+      "answer": "export",
+      "correct": true,
+      "attempt": 1,
+      "t": 27
+    },
+    {
+      "type": "judge_cause",
+      "port": "saudi",
+      "good": "phone",
+      "answer": "nature",
+      "correct": false,
+      "attempt": 1,
+      "t": 28
+    },
+    {
+      "type": "judge_cause",
+      "port": "saudi",
+      "good": "phone",
+      "answer": "tech",
+      "correct": true,
+      "attempt": 2,
+      "t": 29
+    },
+    {
+      "type": "trade",
+      "from": "busan",
+      "to": "saudi",
+      "good": "phone",
+      "qty": 2,
+      "price": 480,
+      "dir": "export",
+      "fee": 96,
+      "t": 30
+    },
+    {
+      "type": "judge_dir",
+      "port": "saudi",
+      "good": "crude-oil",
+      "answer": "import",
+      "correct": true,
+      "attempt": 1,
+      "t": 31
+    },
+    {
+      "type": "judge_cause",
+      "port": "saudi",
+      "good": "crude-oil",
+      "answer": "resource",
+      "correct": true,
+      "attempt": 1,
+      "t": 32
+    },
+    {
+      "type": "trade",
+      "from": "saudi",
+      "to": "busan",
+      "good": "crude-oil",
+      "qty": 2,
+      "price": 36,
+      "dir": "import",
+      "t": 33
+    },
+    {
+      "type": "depart",
+      "port": "saudi",
+      "departure": 3,
+      "t": 34
+    },
+    {
+      "type": "screen",
+      "name": "event-domestic-vs-import",
+      "t": 35
+    },
+    {
+      "type": "event_choice",
+      "event": "domestic-vs-import",
+      "choice": "domestic",
+      "t": 36
+    },
+    {
+      "type": "port_call",
+      "port": "singapore",
+      "turn": 3,
+      "t": 37
+    },
+    {
+      "type": "screen",
+      "name": "game",
+      "t": 38
+    },
+    {
+      "type": "screen",
+      "name": "port-singapore",
+      "t": 39
+    },
+    {
+      "type": "judge_dir",
+      "port": "singapore",
+      "good": "graphite",
+      "answer": "export",
+      "correct": true,
+      "attempt": 1,
+      "t": 40
+    },
+    {
+      "type": "judge_cause",
+      "port": "singapore",
+      "good": "graphite",
+      "answer": "geo",
+      "correct": true,
+      "attempt": 1,
+      "t": 41
+    },
+    {
+      "type": "trade",
+      "from": "shanghai",
+      "to": "singapore",
+      "good": "graphite",
+      "qty": 2,
+      "price": 50,
+      "dir": "transit",
+      "t": 42
+    },
+    {
+      "type": "judge_dir",
+      "port": "singapore",
+      "good": "crude-oil",
+      "answer": "export",
+      "correct": true,
+      "attempt": 1,
+      "t": 43
+    },
+    {
+      "type": "judge_cause",
+      "port": "singapore",
+      "good": "crude-oil",
+      "answer": "geo",
+      "correct": true,
+      "attempt": 1,
+      "t": 44
+    },
+    {
+      "type": "trade",
+      "from": "saudi",
+      "to": "singapore",
+      "good": "crude-oil",
+      "qty": 2,
+      "price": 60,
+      "dir": "transit",
+      "t": 45
+    },
+    {
+      "type": "depart",
+      "port": "singapore",
+      "departure": 4,
+      "t": 46
+    },
+    {
+      "type": "screen",
+      "name": "event-factory-relocation",
+      "t": 47
+    },
+    {
+      "type": "event_choice",
+      "event": "factory-relocation",
+      "choice": "move",
+      "t": 48
+    },
+    {
+      "type": "port_call",
+      "port": "busan",
+      "turn": 4,
+      "t": 49
+    },
+    {
+      "type": "screen",
+      "name": "port-busan",
+      "t": 50
+    },
+    {
+      "type": "refuel",
+      "port": "busan",
+      "fuel": 202.36529490298676,
+      "cost": 0,
+      "t": 51
+    },
+    {
+      "type": "load",
+      "good": "cosmetics",
+      "qty": 2,
+      "t": 52
+    },
+    {
+      "type": "buy_home",
+      "good": "semiconductor",
+      "qty": 2,
+      "price": 210,
+      "t": 53
+    },
+    {
+      "type": "depart",
+      "port": "busan",
+      "departure": 5,
+      "t": 54
+    },
+    {
+      "type": "port_call",
+      "port": "japan",
+      "turn": 5,
+      "t": 55
+    },
+    {
+      "type": "screen",
+      "name": "port-japan",
+      "t": 56
+    },
+    {
+      "type": "judge_dir",
+      "port": "japan",
+      "good": "semiconductor",
+      "answer": "export",
+      "correct": true,
+      "attempt": 1,
+      "t": 57
+    },
+    {
+      "type": "judge_cause",
+      "port": "japan",
+      "good": "semiconductor",
+      "answer": "resource",
+      "correct": true,
+      "attempt": 1,
+      "t": 58
+    },
+    {
+      "type": "trade",
+      "from": "busan",
+      "to": "japan",
+      "good": "semiconductor",
+      "qty": 2,
+      "price": 560,
+      "dir": "export",
+      "t": 59
+    },
+    {
+      "type": "judge_dir",
+      "port": "japan",
+      "good": "robot",
+      "answer": "import",
+      "correct": true,
+      "attempt": 1,
+      "t": 60
+    },
+    {
+      "type": "judge_cause",
+      "port": "japan",
+      "good": "robot",
+      "answer": "tech",
+      "correct": true,
+      "attempt": 1,
+      "t": 61
+    },
+    {
+      "type": "trade",
+      "from": "japan",
+      "to": "busan",
+      "good": "robot",
+      "qty": 2,
+      "price": 228,
+      "dir": "import",
+      "t": 62
+    },
+    {
+      "type": "depart",
+      "port": "japan",
+      "departure": 6,
+      "t": 63
+    },
+    {
+      "type": "screen",
+      "name": "event-fair-trade",
+      "t": 64
+    },
+    {
+      "type": "event_choice",
+      "event": "fair-trade",
+      "choice": "fair",
+      "t": 65
+    },
+    {
+      "type": "port_call",
+      "port": "singapore",
+      "turn": 6,
+      "t": 66
+    },
+    {
+      "type": "screen",
+      "name": "port-singapore",
+      "t": 67
+    },
+    {
+      "type": "judge_dir",
+      "port": "singapore",
+      "good": "cosmetics",
+      "answer": "export",
+      "correct": true,
+      "attempt": 1,
+      "t": 68
+    },
+    {
+      "type": "judge_cause",
+      "port": "singapore",
+      "good": "cosmetics",
+      "answer": "geo",
+      "correct": true,
+      "attempt": 1,
+      "t": 69
+    },
+    {
+      "type": "trade",
+      "from": "busan",
+      "to": "singapore",
+      "good": "cosmetics",
+      "qty": 2,
+      "price": 200,
+      "dir": "export",
+      "t": 70
+    },
+    {
+      "type": "judge_dir",
+      "port": "singapore",
+      "good": "robot",
+      "answer": "export",
+      "correct": true,
+      "attempt": 1,
+      "t": 71
+    },
+    {
+      "type": "judge_cause",
+      "port": "singapore",
+      "good": "robot",
+      "answer": "geo",
+      "correct": true,
+      "attempt": 1,
+      "t": 72
+    },
+    {
+      "type": "trade",
+      "from": "japan",
+      "to": "singapore",
+      "good": "robot",
+      "qty": 2,
+      "price": 380,
+      "dir": "transit",
+      "t": 73
+    },
+    {
+      "type": "stage",
+      "stage": "epilogue",
+      "t": 74
+    },
+    {
+      "type": "screen",
+      "name": "epilogue-ledger",
+      "t": 75
+    },
+    {
+      "type": "screen",
+      "name": "epilogue-compare",
+      "t": 76
+    },
+    {
+      "type": "sentence",
+      "text": "나라마다 자연환경과 자원, 기술이 달라서 잘 만드는 것이 다르기 때문에 무역을 한다.",
+      "t": 77
+    },
+    {
+      "type": "screen",
+      "name": "epilogue-mind",
+      "t": 78
+    },
+    {
+      "type": "mindmap",
+      "slot": "meaning",
+      "answer": "무역",
+      "correct": true,
+      "t": 79
+    },
+    {
+      "type": "mindmap",
+      "slot": "import",
+      "answer": "수입",
+      "correct": true,
+      "t": 80
+    },
+    {
+      "type": "mindmap",
+      "slot": "export",
+      "answer": "수출",
+      "correct": true,
+      "t": 81
+    },
+    {
+      "type": "mindmap",
+      "slot": "cause",
+      "answer": "차이",
+      "correct": true,
+      "t": 82
+    },
+    {
+      "type": "mindmap",
+      "slot": "interdependence",
+      "answer": "상호의존",
+      "correct": true,
+      "t": 83
+    },
+    {
+      "type": "screen",
+      "name": "epilogue-result",
+      "t": 84
+    },
+    {
+      "type": "stage",
+      "stage": "done",
+      "t": 85
+    }
+  ]
+}
