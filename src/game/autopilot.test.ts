@@ -86,6 +86,12 @@ describe('F1·F4 밀린 필수 카드 — 짧은 뱃길·입항 직전(requiredE
   });
 });
 
+describe('결정성 금지 토큰', () => {
+  it('항해 씬에 Math.random·Date 없음(시드 난수만)', async () => {
+    expect((await import('./SailingScene.ts?raw')).default).not.toMatch(/Math\.random|Date\.now|new Date/);
+  });
+});
+
 describe('R17 boot 배경색', () => {
   it('tokens.css --color-sea 를 읽는다(hex 하드코딩 없음)', async () => {
     const src = (await import('./boot.ts?raw')).default;
