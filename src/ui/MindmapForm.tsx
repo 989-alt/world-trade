@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { MINDMAP_SLOTS, isAccepted, normalize, slotOptions } from '../content/mindmap';
-import type { LogInput } from '../engine/types';
+import type { LogEvent, LogInput } from '../engine/types';
 import './epilogue.css';
 
 export type SlotScore = { id: string; answer: string; correct: boolean; reveal: string | null };
@@ -14,11 +14,25 @@ export function scoreMindmap(answers: Record<string, string>): SlotScore[] {
   });
 }
 
-type Props = { seed: number; onLog: (e: LogInput) => void; onDone: () => void };
+/** 저장 로그에서 복원: 칸별 첫 mindmap 로그 = 답. 5칸 모두 있으면 채점·정답 공개 상태로 잠금 */
+export function mindInit(log: LogEvent[]): { answers: Record<string, string>; scores: SlotScore[] | null } {
+  const first: Record<string, { answer: string; correct: boolean }> = {};
+  for (const e of log) if (e.type === 'mindmap' && !(e.slot in first)) first[e.slot] = e;
+  const answers = Object.fromEntries(Object.entries(first).map(([k, v]) => [k, v.answer]));
+  if (!MINDMAP_SLOTS.every((s) => s.id in first)) return { answers, scores: null };
+  const scores = MINDMAP_SLOTS.map((s) => {
+    const { answer, correct } = first[s.id];
+    return { id: s.id, answer, correct, reveal: correct ? null : s.accepted[0] };
+  });
+  return { answers, scores };
+}
 
-export function MindmapForm({ seed, onLog, onDone }: Props) {
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [scores, setScores] = useState<SlotScore[] | null>(null);
+type Props = { seed: number; log: LogEvent[]; onLog: (e: LogInput) => void; onDone: () => void };
+
+export function MindmapForm({ seed, log, onLog, onDone }: Props) {
+  const [init] = useState(() => mindInit(log));
+  const [answers, setAnswers] = useState<Record<string, string>>(init.answers);
+  const [scores, setScores] = useState<SlotScore[] | null>(init.scores);
   const submit = () => {
     if (scores) return;
     const s = scoreMindmap(answers);

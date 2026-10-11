@@ -49,7 +49,7 @@ export function check(r) {
   const diff = SENTENCE_DIFF.test(text);
 
   const mind = {};
-  for (const e of log) if (e.type === 'mindmap') mind[e.slot] = e.correct;
+  for (const e of log) if (e.type === 'mindmap' && !(e.slot in mind)) mind[e.slot] = e.correct; // 칸별 첫 답
   const mindOk = Object.values(mind).filter(Boolean).length;
 
   const blocked = log.filter((e) => e.type === 'export_attempt_blocked' && T.S6_GOODS.includes(e.good)).length;

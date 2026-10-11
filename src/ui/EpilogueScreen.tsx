@@ -175,7 +175,7 @@ export function EpilogueScreen({ state, dispatch, onLog, onDone }: Props) {
       <div class="ep-panel">
         {phase === 'ledger' && <LedgerScreen state={state} onLog={onLog} onDone={next} />}
         {phase === 'why' && <WhyScreen log={state.log} onLog={onLog} onDone={next} />}
-        {phase === 'mind' && <MindmapForm seed={state.seed} onLog={onLog} onDone={next} />}
+        {phase === 'mind' && <MindmapForm seed={state.seed} log={state.log} onLog={onLog} onDone={next} />}
       </div>
     </div>
   );

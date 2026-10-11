@@ -477,6 +477,26 @@ test('카드 닫기 — 항구 반경 안에서 무전 카드를 닫아도 배�
   expect(r).toBe('ok');
 });
 
+// QA r4(Z4): 무전 카드가 열려 있으면 HUD 일지는 열리지 않는다 — 겹친 창이 남은 채 항해가 재개되면 안 된다(§4.7)
+test('무전·일지 겹침 금지 — 카드가 열린 동안 일지 무시, 카드를 닫으면 항해 재개(부산→일본)', async ({ page }) => {
+  await newGame(page);
+  await leave(page);
+  await page.evaluate(() => {
+    const w = window as unknown as { __ktrade: { sailTo(p: string): Promise<void> }; __sail: Promise<string> };
+    w.__sail = w.__ktrade.sailTo('japan').then(() => 'ok', (e: Error) => `err:${e.message}`);
+  });
+  const card = page.locator('.ev-card');
+  await expect(card).toBeVisible({ timeout: 60_000 });
+  await card.locator('.ev-opt').first().click();
+  await page.getByRole('button', { name: '일지', exact: true }).click({ force: true });
+  await expect(page.locator('.ep-root')).toHaveCount(0);
+  await card.locator('.ev-go').click();
+  await expect(card).toBeHidden();
+  await expect(page.locator('.ep-root')).toHaveCount(0);
+  const r = await page.evaluate(() => (window as unknown as { __sail: Promise<string> }).__sail);
+  expect(r).toBe('ok');
+});
+
 test('항해 연출(T14·T15) — 카메라 경계(부산·LA)·화면 고정 UI 위치/크기·부산→일본 배 아래 시각 육지 ≤ 5%(V2·V8·V12·M12)', async ({ page }) => {
   await newGame(page);
   await leave(page);

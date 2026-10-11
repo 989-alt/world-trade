@@ -1,5 +1,8 @@
-import { GOOD_IDS, PORT_IDS } from '../content/types';
-import type { GameState } from './types';
+import { EVENTS } from '../content/events';
+import { MINDMAP_SLOTS } from '../content/mindmap';
+import { RECIPES } from '../content/recipes';
+import { AXES, GOOD_IDS, PORT_IDS } from '../content/types';
+import type { GameState, LogEvent } from './types';
 
 export const SAVE_KEY = 'ktrade.save.v1';
 
@@ -7,10 +10,48 @@ export type KV = { getItem(k: string): string | null; setItem(k: string, v: stri
 export type LoadResult = { ok: true; state: GameState } | { ok: false; notice: 'save_corrupted' | 'version_mismatch' | 'none' };
 
 const isItem = (x: unknown) => !!x && typeof x === 'object' && (GOOD_IDS as readonly string[]).includes((x as { good: string }).good) && Number.isInteger((x as { qty: number }).qty) && (x as { qty: number }).qty > 0;
-const isEvent = (x: unknown) => !!x && typeof x === 'object' && typeof (x as { type: unknown }).type === 'string' && typeof (x as { t: unknown }).t === 'number';
 const isStr = (x: unknown) => typeof x === 'string';
-
 const STAGES = ['prologue', 'main', 'epilogue', 'done'];
+
+type V = (x: unknown) => boolean;
+const oneOf = (xs: readonly unknown[]): V => (x) => xs.includes(x);
+const num: V = (x) => typeof x === 'number' && Number.isFinite(x);
+const bool: V = (x) => typeof x === 'boolean';
+const opt = (v: V): V => (x) => x === undefined || v(x);
+const port = oneOf(PORT_IDS);
+const good = oneOf(GOOD_IDS);
+const ie = oneOf(['import', 'export']);
+const attempt = oneOf([1, 2]);
+const isEventId = oneOf(EVENTS.map((e) => e.id));
+
+/** 로그 type별 필수 필드·참조 ID 검사. 검증 깊이 상한: flags 내부·수치 일관성은 보지 않는다 */
+const LOG_SHAPE: Record<LogEvent['type'], Record<string, V>> = {
+  judge_dir: { port, good, answer: ie, correct: bool, attempt },
+  judge_cause: { port, good, answer: oneOf(AXES), correct: bool, attempt, dir: opt(ie) },
+  trade: { from: port, to: port, good, qty: num, price: num, dir: oneOf(['import', 'export', 'transit']), fee: opt(num), flag: opt(oneOf(['buying_own_specialty'])) },
+  process: { recipe: oneOf(RECIPES.map((r) => r.id)), inputsOrigin: (x) => Array.isArray(x) && x.every(port) },
+  event_choice: { event: isEventId, choice: isStr },
+  autarky: { turn: num },
+  export_attempt_blocked: { good },
+  sentence: { text: isStr, axes: opt((x) => Array.isArray(x) && x.every(oneOf(AXES))), ending: opt(isStr) },
+  mindmap: { slot: oneOf(MINDMAP_SLOTS.map((m) => m.id)), answer: isStr, correct: bool },
+  screen: { name: isStr },
+  ledger_manual: { exporter: isStr, good: isStr, importer: isStr, correct: bool },
+  towed: { to: port },
+  refuel: { port, fuel: num, cost: num },
+  port_call: { port, turn: num },
+  depart: { port, departure: num },
+  stage: { stage: oneOf(STAGES) },
+  load: { good, qty: num },
+  buy_home: { good, qty: num, price: num },
+};
+
+const isEvent = (x: unknown) => {
+  if (!x || typeof x !== 'object') return false;
+  const e = x as Record<string, unknown>;
+  const shape = Object.prototype.hasOwnProperty.call(LOG_SHAPE, e.type as string) ? LOG_SHAPE[e.type as LogEvent['type']] : null;
+  return !!shape && num(e.t) && Object.entries(shape).every(([k, v]) => v(e[k]));
+};
 
 function defaultStorage(): KV | null {
   try {
@@ -78,7 +119,7 @@ export function loadGame(storage: KV | null = defaultStorage()): LoadResult {
     !(s.location === 'sea' || (PORT_IDS as readonly string[]).includes(s.location as string)) ||
     !s.shipPos || !unit(s.shipPos.x) || !unit(s.shipPos.y) ||
     !Array.isArray(s.eventQueue) || !Array.isArray(s.eventsDrawn) || !Array.isArray(s.depot) ||
-    !s.cargo.every(isItem) || !s.depot.every(isItem) || !s.log.every(isEvent) || !s.eventQueue.every(isStr) || !s.eventsDrawn.every(isStr) ||
+    !s.cargo.every(isItem) || !s.depot.every(isItem) || !s.log.every(isEvent) || !s.eventQueue.every(isEventId) || !s.eventsDrawn.every(isEventId) ||
     typeof s.fuel !== 'number' || typeof s.portCalls !== 'number' || typeof s.departures !== 'number'
   ) {
     return { ok: false, notice: 'save_corrupted' };

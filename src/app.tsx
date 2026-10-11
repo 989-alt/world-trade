@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { playBgm } from './audio/audio';
 import type { GameEvent } from './content/types';
 import { withLog } from './engine/economy';
@@ -35,6 +35,9 @@ export function App() {
   const [state, setState] = useState(gameStore.get());
   const [event, setEvent] = useState<GameEvent | null>(null);
   const [ledger, setLedger] = useState(false);
+  // 항해 리스너(route 클로저)가 지금 열린 창을 읽도록: 무전·일지는 겹치지 않는다(§4.7)
+  const open = useRef({ event: false });
+  open.current = { event: !!event };
   const [toast, setToast] = useState<string | null>(() => {
     const r = loadGame();
     return !r.ok && r.notice !== 'none' ? LOAD_FAILED : null;
@@ -76,6 +79,7 @@ export function App() {
       setEvent(ev);
     };
     const onLedger = () => {
+      if (open.current.event) return; // 무전 카드가 열려 있으면 일지를 열지 않는다
       logScreen('ledger');
       setDialogOpen(true);
       setLedger(true);
@@ -122,11 +126,11 @@ export function App() {
   const choose = (choiceId: string) => {
     if (event) gameStore.dispatch({ type: 'EVENT_CHOICE', eventId: event.id, choiceId });
     setEvent(null);
-    resumeSailing();
+    if (!ledger) resumeSailing(); // 남은 창이 없을 때만 항해 재개
   };
   const closeLedger = () => {
     setLedger(false);
-    resumeSailing();
+    if (!event) resumeSailing();
   };
   const epilogueLog = (e: LogInput) => {
     onLog(e);

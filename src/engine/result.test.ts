@@ -164,10 +164,14 @@ describe('checkResult S1~S9', () => {
     expect(r.S2.pass).toBe(false);
   });
 
-  it('S5: 3 of 5 mindmap slots fails, last answer per slot counts', () => {
+  it('S5: 3 of 5 mindmap slots fails, first answer per slot counts', () => {
     const wrong = (slot: string): LogInput => ({ type: 'mindmap', slot, answer: 'x', correct: false });
-    expect(checkResult(withLog([wrong('meaning')])).S5).toMatchObject({ pass: false, value: 3 });
-    expect(checkResult(withLog([wrong('meaning'), { type: 'mindmap', slot: 'meaning', answer: '무역', correct: true }])).S5.pass).toBe(true);
+    const right: LogInput = { type: 'mindmap', slot: 'meaning', answer: '무역', correct: true };
+    const noMeaning = (e: LogEvent) => e.type === 'mindmap' && e.slot === 'meaning';
+    expect(checkResult(withLog([wrong('meaning')], noMeaning)).S5).toMatchObject({ pass: false, value: 3 });
+    expect(checkResult(withLog([wrong('meaning'), right], noMeaning)).S5).toMatchObject({ pass: false, value: 3 });
+    expect(checkResult(withLog([right, wrong('meaning')], noMeaning)).S5).toMatchObject({ pass: true, value: 4 });
+    expect(checkResult(withLog([{ type: 'mindmap', slot: 'interdependence', answer: '상호의존', correct: true }])).S5.value).toBe(4);
   });
 
   it('S6: a crude-oil export attempt fails; other goods ignored', () => {

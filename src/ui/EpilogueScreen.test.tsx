@@ -6,7 +6,7 @@ import { reduce } from '../engine/state';
 import type { GameState, LogEvent, LogInput } from '../engine/types';
 import { EpilogueScreen, compareBars, doExport, firstPhase, resultStats, sentenceGate, whyInit } from './EpilogueScreen';
 import { COUNTRIES, GOOD_NAMES, checkManualRow } from './LedgerScreen';
-import { scoreMindmap } from './MindmapForm';
+import { mindInit, scoreMindmap } from './MindmapForm';
 import { CSV_COLUMNS, TEACHER_PRIVACY } from './TeacherGuide';
 import guideSrc from './TeacherGuide.tsx?raw';
 
@@ -52,7 +52,29 @@ describe('mindmap scoring', () => {
   });
 });
 
+describe('mindmap restore (Z2)', () => {
+  const mind = (slot: string, answer: string, correct: boolean): LogInput => ({ type: 'mindmap', slot, answer, correct });
+  it('no or partial mindmap logs: answers restored, not locked', () => {
+    expect(mindInit([])).toEqual({ answers: {}, scores: null });
+    expect(mindInit(withLog(fresh(), mind('meaning', '수입', false)).log)).toEqual({ answers: { meaning: '수입' }, scores: null });
+  });
+  it('5 slots logged: first answer per slot, locked with reveals; later resubmits ignored', () => {
+    const first = MINDMAP_SLOTS.map((x) => mind(x.id, '자급자족', false));
+    const again = MINDMAP_SLOTS.map((x) => mind(x.id, x.accepted[0], true));
+    const r = mindInit(withLog(fresh(), ...first, ...again).log);
+    expect(r.answers).toEqual(Object.fromEntries(MINDMAP_SLOTS.map((x) => [x.id, '자급자족'])));
+    expect(r.scores?.map((x) => x.correct)).toEqual([false, false, false, false, false]);
+    expect(r.scores?.map((x) => x.reveal)).toEqual(MINDMAP_SLOTS.map((x) => x.accepted[0]));
+  });
+});
+
 describe('manual ledger row', () => {
+  it('Z3 대한민국 수출 정답 = 부산 특산 ∪ 가공 출력품, 원유·천연가스는 오답', () => {
+    expect(checkManualRow('대한민국', '배터리', '로스앤젤레스').correct).toBe(true);
+    expect(checkManualRow('대한민국', '자동차', '로스앤젤레스').correct).toBe(true);
+    expect(checkManualRow('대한민국', '석유 제품', '싱가포르').correct).toBe(true);
+    expect(checkManualRow('대한민국', '원유', '로스앤젤레스').correct || checkManualRow('대한민국', '천연가스', '일본').correct).toBe(false);
+  });
   it('needs all three cells; checks against specialties', () => {
     expect(checkManualRow('', '원유', '대한민국').complete).toBe(false);
     expect(checkManualRow('사우디아라비아', '원유', '').complete).toBe(false);

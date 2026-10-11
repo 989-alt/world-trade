@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { GOODS } from '../content/goods';
 import { PORTS } from '../content/ports';
+import { RECIPES } from '../content/recipes';
 import { normalize } from '../content/mindmap';
 import type { PortId } from '../content/types';
 import { KOREA, buildLedger } from '../engine/result';
@@ -13,14 +14,15 @@ const country = (s: string) => {
   return ALIAS[n] ?? PORTS.find((p) => normalize(p.nameKo) === n)?.id;
 };
 
-/** 수동 행 검증: 세 칸이 모두 차야 추가 가능(complete). correct = 수출국의 특산 품목이고 수입국이 다른 알려진 나라 */
+/** 수동 행 검증: 세 칸이 모두 차야 추가 가능(complete). correct = 수출국의 특산 품목(대한민국은 + 가공 출력품)이고 수입국이 다른 알려진 나라 */
 export function checkManualRow(exporter: string, good: string, importer: string): { complete: boolean; correct: boolean } {
   const complete = [exporter, good, importer].every((x) => normalize(x) !== '');
   if (!complete) return { complete, correct: false };
   const ex = country(exporter);
   const im = country(importer);
   const g = GOODS.find((x) => normalize(x.nameKo) === normalize(good));
-  const correct = !!(ex && im && g && ex !== im && PORTS.find((p) => p.id === ex)!.specialties.includes(g.id));
+  const own = [...PORTS.find((p) => p.id === ex)?.specialties ?? [], ...(ex === 'busan' ? RECIPES.map((r) => r.output) : [])];
+  const correct = !!(ex && im && g && ex !== im && own.includes(g.id));
   return { complete, correct };
 }
 

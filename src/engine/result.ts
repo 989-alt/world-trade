@@ -130,7 +130,7 @@ export function checkResult(r: ResultJson): Checks {
   const diff = SENTENCE_DIFF.test(text);
 
   const mind: Record<string, boolean> = {};
-  for (const e of log) if (e.type === 'mindmap') mind[e.slot] = e.correct;
+  for (const e of log) if (e.type === 'mindmap' && !(e.slot in mind)) mind[e.slot] = e.correct; // 칸별 첫 답(정답 공개 뒤 재제출 무시)
   const mindOk = Object.values(mind).filter(Boolean).length;
 
   const blocked = log.filter((e) => e.type === 'export_attempt_blocked' && (T.S6_GOODS as readonly string[]).includes(e.good)).length;

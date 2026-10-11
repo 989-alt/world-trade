@@ -102,4 +102,35 @@ describe('save / load', () => {
       { log: [1] }, { log: [null] }, { eventQueue: [1] }, { eventsDrawn: [null] },
     ]) expect(bad(patch)).toEqual({ ok: false, notice: 'save_corrupted' });
   });
+
+  it('Z1 log shape per type + reference IDs → save_corrupted; full valid log round-trips', () => {
+    const base = game();
+    const bad = (patch: Record<string, unknown>) => loadGame(mem({ [SAVE_KEY]: JSON.stringify({ ...base, ...patch }) }));
+    for (const patch of [
+      { log: [{ type: 'port_call', t: 1, port: 'japan', turn: 1 }, { type: 'trade', t: 2 }] },
+      { log: [{ type: 'trade', t: 1, from: 'busan', to: 'mars', good: 'car', qty: 1, price: 1, dir: 'export' }] },
+      { log: [{ type: 'judge_cause', t: 1, port: 'saudi', good: 'crude-oil', answer: 'luck', correct: true, attempt: 1 }] },
+      { log: [{ type: 'mindmap', t: 1, slot: 'nope', answer: '무역', correct: true }] },
+      { log: [{ type: 'event_choice', t: 1, event: 'missing-event', choice: 'x' }] },
+      { log: [{ type: 'load', t: 1, good: 'car', qty: '1' }] },
+      { log: [{ type: 'mystery', t: 1 }] },
+      { eventQueue: base.eventQueue.map((e, i) => (i === 5 ? 'missing-event' : e)) },
+      { eventsDrawn: ['missing-event'] },
+    ]) expect(bad(patch)).toEqual({ ok: false, notice: 'save_corrupted' });
+    const log = [
+      { type: 'port_call', port: 'japan', turn: 1 },
+      { type: 'judge_dir', port: 'japan', good: 'robot', answer: 'import', correct: true, attempt: 1 },
+      { type: 'judge_cause', port: 'japan', good: 'robot', answer: 'tech', correct: true, attempt: 2, dir: 'import' },
+      { type: 'trade', from: 'japan', to: 'busan', good: 'robot', qty: 1, price: 10, dir: 'import', fee: 1 },
+      { type: 'process', recipe: 'battery', inputsOrigin: ['shanghai'] },
+      { type: 'event_choice', event: base.eventQueue[0], choice: 'x' },
+      { type: 'sentence', text: '자원이 달라서', axes: ['resource'], ending: 'differ' },
+      { type: 'mindmap', slot: 'meaning', answer: '무역', correct: true },
+      { type: 'ledger_manual', exporter: '대한민국', good: '배터리', importer: '일본', correct: true },
+      { type: 'refuel', port: 'busan', fuel: 10, cost: 5 },
+      { type: 'buy_home', good: 'steel', qty: 1, price: 3 },
+    ].map((e, i) => ({ ...e, t: i + 1 }));
+    const ok = { ...base, log };
+    expect(loadGame(mem({ [SAVE_KEY]: JSON.stringify(ok) }))).toEqual({ ok: true, state: ok });
+  });
 });
