@@ -142,7 +142,7 @@ body.port-open .sail-ui .cargo { display: none; }
 .port-ui .sum { display: grid; gap: 2px; font-family: var(--font-display); font-size: 24px; line-height: 1; }
 .port-ui .sum span { display: flex; align-items: center; gap: 6px; }
 .port-ui .sum img { width: 32px; height: 32px; }
-.port-ui .sum small { font-family: var(--font-body); font-size: 15px; font-weight: 700; color: var(--color-wrong); }
+.port-ui .sum small { font-family: var(--font-body); font-size: 15px; font-weight: 700; color: var(--color-wrong-text); }
 .port-ui .trade .btn { margin-left: auto; }
 .port-ui .home-trade { left: 20px; bottom: 20px; width: 400px; }
 .port-ui .home-trade .trade { gap: 10px; }
@@ -166,5 +166,5 @@ body.port-open .sail-ui .cargo { display: none; }
   font-size: 17px; font-weight: 700; line-height: 1; white-space: nowrap;
 }
 .port-ui .chip img { width: 26px; height: 26px; }
-.port-ui .chip.lack { border-color: var(--color-wrong); color: var(--color-wrong); border-style: dashed; }
+.port-ui .chip.lack { border-color: var(--color-wrong); color: var(--color-wrong-text); border-style: dashed; }
 .port-ui .recipe.off .arrow, .port-ui .recipe.off .chip:not(.lack) { opacity: 0.5; }

@@ -487,6 +487,14 @@ test('무전·일지 겹침 금지 — 카드가 열린 동안 일지 무시, �
   });
   const card = page.locator('.ev-card');
   await expect(card).toBeVisible({ timeout: 60_000 });
+  // W4: 장단점 글자(.ev-plus·.ev-minus)는 글자용 정오 토큰 — 흰 바탕 대비 ≥ 4.5:1
+  const ratios = await card.evaluate((el) => {
+    const lum = (c: string) => c.match(/[\d.]+/g)!.slice(0, 3).map((x) => Number(x) / 255)
+      .map((x) => (x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4)).reduce((a, x, i) => a + x * [0.2126, 0.7152, 0.0722][i], 0);
+    return [...el.querySelectorAll('.ev-plus, .ev-minus')].map((e) => (1 + 0.05) / (lum(getComputedStyle(e).color) + 0.05));
+  });
+  expect(ratios.length).toBeGreaterThan(0);
+  for (const r of ratios) expect(r).toBeGreaterThanOrEqual(4.5);
   await card.locator('.ev-opt').first().click();
   await page.getByRole('button', { name: '일지', exact: true }).click({ force: true });
   await expect(page.locator('.ep-root')).toHaveCount(0);
