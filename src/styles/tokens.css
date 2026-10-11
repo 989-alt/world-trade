@@ -31,6 +31,9 @@
   --color-correct-foreground: #1B2A41;
   --color-wrong: #E5484D;
   --color-wrong-foreground: #FFFFFF;
+  /* 흰·크림 바탕 위 정오 글자(위 두 색은 배지 바탕용, 글자 대비 미달) — DESIGN Status QA r5 */
+  --color-correct-text: #1E7F50;
+  --color-wrong-text: #C0262C;
   --color-hidden: #DCE9FA;
   --color-hidden-foreground: #52637A;
   --color-axis-nature: #4CAF50;

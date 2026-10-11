@@ -47,9 +47,9 @@ if (!(START_CASH >= MAX_REFUEL * PORT_CALLS)) throw new Error(`invariant: START_
 const ALL_SPECIALTIES = new Set(PORTS.flatMap((p) => p.specialties));
 
 /** 기준가 × 특산 0.6 / 결핍 1.6 / 보통 1.0 × 이벤트 배수. 싱가포르는 특산·결핍이 없어 전부 1.0 */
-export function priceAt(port: Port, good: GoodId, factor: Partial<Record<GoodId, number>> = {}): number {
+export function priceAt(port: Port, good: GoodId, factor: GameState['flags']['priceFactor'] = {}): number {
   const mult = port.specialties.includes(good) ? SPECIALTY_MULT : port.shortages.some((s) => s.good === good) ? SHORTAGE_MULT : 1;
-  return Math.round(GOOD_BY_ID[good].basePrice * mult * (factor[good] ?? 1));
+  return Math.round(GOOD_BY_ID[good].basePrice * mult * (factor[good] ?? 1) * (factor[`${port.id}:${good}`] ?? 1));
 }
 
 /** 한국 특산품을 외국에서 사기(M7) */

@@ -65,7 +65,8 @@ export type Recipe = {
 };
 
 export type Effect =
-  | { type: 'price'; good: GoodId; factor: number }
+  /** port 가 있으면 그 항구 시세만(가뭄: 타이 설탕), 없으면 모든 항구 */
+  | { type: 'price'; good: GoodId; factor: number; port?: PortId }
   | { type: 'factoryLevel'; delta: number }
   | { type: 'refuelDiscount'; factor: number }
   | { type: 'reputation'; delta: number }

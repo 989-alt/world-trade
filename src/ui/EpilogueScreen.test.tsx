@@ -4,7 +4,7 @@ import { downloadFiles } from '../engine/export';
 import { EPILOGUE_COMPARE_SCREEN, checkResult } from '../engine/result';
 import { reduce } from '../engine/state';
 import type { GameState, LogEvent, LogInput } from '../engine/types';
-import { EpilogueScreen, compareBars, doExport, firstPhase, resultStats, sentenceGate, whyInit } from './EpilogueScreen';
+import { EpilogueScreen, compareBars, doExport, firstPhase, resultStats, sentenceGate, signed, whyInit } from './EpilogueScreen';
 import { COUNTRIES, GOOD_NAMES, checkManualRow } from './LedgerScreen';
 import { mindInit, scoreMindmap } from './MindmapForm';
 import { CSV_COLUMNS, TEACHER_PRIVACY } from './TeacherGuide';
@@ -134,7 +134,7 @@ const doExportArg = () => { let got: any; doExport(fresh(), (r) => ((got = r), t
 afterEach(() => vi.unstubAllGlobals());
 
 describe('compare bars', () => {
-  it('no stay-home turns -> stayTurns 0 (graph omitted); with stays counted', () => {
+  it('no stay-home turns -> stayTurns 0 (bars still shown); with stays counted', () => {
     expect(compareBars([]).stayTurns).toBe(0);
     const s = withLog(fresh(),
       { type: 'port_call', port: 'saudi', turn: 1 },
@@ -144,6 +144,13 @@ describe('compare bars', () => {
       { type: 'trade', from: 'saudi', to: 'busan', good: 'crude-oil', qty: 2, price: 100, dir: 'import' },
       { type: 'autarky', turn: 3 });
     expect(compareBars(s.log)).toEqual({ tradeAvg: Math.round((-80 + 200) / 2), tradeCalls: 2, stayTurns: 1 });
+  });
+  it('W2 머문 턴 0 이어도 무역 평균은 계산·음수 기호(−35)로 표시', () => {
+    const log = withLog(fresh(), { type: 'buy_home', good: 'semiconductor', qty: 1, price: 210 },
+      ...Array.from({ length: 6 }, (_, i) => ({ type: 'port_call', port: 'japan', turn: i + 1 }) as LogInput)).log;
+    const b = compareBars(log);
+    expect(b).toEqual({ tradeAvg: -35, tradeCalls: 6, stayTurns: 0 });
+    expect([signed(b.tradeAvg), signed(0), signed(150)]).toEqual(['\u221235', '0', '150']);
   });
   it('Q3 출발 전 부산 구매는 다음 입항 몫(가짜 턴 없음), 입항 수만 분모', () => {
     const log = withLog(fresh(),

@@ -64,8 +64,8 @@ export type GameState = {
     exportValue: number;
     /** 이벤트로 바뀐 공장 레벨 증감 */
     factoryDelta: number;
-    /** 이벤트로 바뀐 상품 시세 배수 */
-    priceFactor: Partial<Record<GoodId, number>>;
+    /** 이벤트로 바뀐 상품 시세 배수. 키 = 상품(전 항구) 또는 `항구:상품`(그 항구만) */
+    priceFactor: Partial<Record<GoodId | `${PortId}:${GoodId}`, number>>;
     /** 이번 입항이 예인 입항(거래 불가·급유만) */
     towedCall: boolean;
   };

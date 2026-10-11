@@ -137,6 +137,22 @@ describe('이벤트 드로우', () => {
     t = reduce(t, { type: 'EVENT_CHOICE', eventId: 'factory-relocation', choiceId: 'move' }).state;
     expect([t.factoryLevel, t.employment]).toEqual([2, 240]);
   });
+
+  it('가뭄 near → 타이 설탕만 ×1.5(타이에서 살 수 있다), 브라질 설탕 그대로 / far → 변화 없음', () => {
+    const drought = (choiceId: string) => {
+      const s = reduce(start(), { type: 'LEAVE_PORT' }).state;
+      return reduce({ ...s, eventQueue: [...s.eventQueue.slice(0, 5), 'drought'] }, { type: 'EVENT_CHOICE', eventId: 'drought', choiceId }).state;
+    };
+    const base = (port: 'thai' | 'brazil') => priceAt(PORT_BY_ID[port], 'sugar');
+    let s = drought('near');
+    expect(priceAt(PORT_BY_ID.brazil, 'sugar', s.flags.priceFactor)).toBe(base('brazil'));
+    s = reduce(s, { type: 'ENTER_PORT', port: 'thai' }).state;
+    const r = reduce(s, { type: 'BUY', good: 'sugar', qty: 1 });
+    expect(r.reason).toBeUndefined();
+    expect(s.cash - r.state.cash).toBe(Math.round(base('thai') * 1.5));
+    const f = drought('far').flags.priceFactor;
+    expect([priceAt(PORT_BY_ID.thai, 'sugar', f), priceAt(PORT_BY_ID.brazil, 'sugar', f)]).toEqual([base('thai'), base('brazil')]);
+  });
 });
 
 describe('턴 진행', () => {

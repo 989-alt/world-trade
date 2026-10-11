@@ -497,6 +497,31 @@ test('무전·일지 겹침 금지 — 카드가 열린 동안 일지 무시, �
   expect(r).toBe('ok');
 });
 
+// QA r5 ①: 항구에서 일지를 연 동안 뒤쪽 항구 화면·HUD 는 inert — Tab 으로 숨은 출항에 닿지 않고, 배·연료 불변(§4.7)
+test('항구 일지 — 열린 동안 항구·HUD inert, Tab→Enter→방향키에도 배·연료 불변, 닫으면 해제(부산)', async ({ page }) => {
+  await newGame(page);
+  await page.getByRole('button', { name: '일지', exact: true }).click();
+  await expect(page.locator('.ep-root .ep-table')).toBeVisible();
+  expect(await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.port-ui, .sail-ui')].map((e) => e.inert))).toEqual([true, true]);
+  const before = await state(page);
+  let reached = false;
+  for (let i = 0; i < 50 && !reached; i++) {
+    await page.keyboard.press('Tab');
+    reached = await page.evaluate(() => !!document.activeElement?.closest('.port-ui, .sail-ui'));
+  }
+  expect(reached).toBe(false);
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur()); // 일지 안 「다음」에 Enter 가 들어가 창이 닫히지 않게
+  await page.keyboard.press('Enter');
+  await page.keyboard.down('ArrowRight');
+  await page.waitForTimeout(1200);
+  await page.keyboard.up('ArrowRight');
+  const after = await state(page);
+  expect([after.location, after.shipPos, after.fuel]).toEqual([before.location, before.shipPos, before.fuel]);
+  await page.locator('.ep-root').getByRole('button', { name: '다음', exact: true }).click();
+  await expect(page.locator('.ep-root')).toHaveCount(0);
+  expect(await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.port-ui, .sail-ui')].map((e) => e.inert))).toEqual([false, false]);
+});
+
 test('항해 연출(T14·T15) — 카메라 경계(부산·LA)·화면 고정 UI 위치/크기·부산→일본 배 아래 시각 육지 ≤ 5%(V2·V8·V12·M12)', async ({ page }) => {
   await newGame(page);
   await leave(page);

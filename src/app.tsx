@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { playBgm } from './audio/audio';
 import type { GameEvent } from './content/types';
 import { withLog } from './engine/economy';
 import { clearSave, createAutosave, loadGame, saveGame } from './engine/save';
 import type { GameState, LogInput } from './engine/types';
 import { setDialogOpen } from './game/boot';
-import { gameStore, resumeSailing, startSailing } from './game/SailingScene';
+import { gameStore, resumeSailing, setWindowOpen, startSailing } from './game/SailingScene';
 import { EpilogueScreen } from './ui/EpilogueScreen';
 import { EventCard } from './ui/EventCard';
 import { mountSailingUi } from './ui/Hud';
@@ -45,6 +45,11 @@ export function App() {
 
   useEffect(() => gameStore.subscribe(setState), []);
 
+  // 일지가 열린 동안 뒤쪽 항구 화면·HUD 는 초점·클릭을 받지 않는다(Tab 으로 숨은 출항 금지)
+  useLayoutEffect(() => {
+    document.querySelectorAll<HTMLElement>('.port-ui, .sail-ui').forEach((el) => { el.inert = ledger; });
+  }, [ledger]);
+
   // 자동 저장: 로그가 붙을 때마다(완주 done 도 저장 — 새로 고침하면 결과 화면)
   useEffect(() => {
     const autosave = createAutosave();
@@ -76,11 +81,13 @@ export function App() {
     const onEvent = (e: Event) => {
       const ev = (e as CustomEvent<{ event: GameEvent }>).detail.event;
       logScreen(`event-${ev.id}`);
+      setWindowOpen(true);
       setEvent(ev);
     };
     const onLedger = () => {
       if (open.current.event) return; // 무전 카드가 열려 있으면 일지를 열지 않는다
       logScreen('ledger');
+      setWindowOpen(true);
       setDialogOpen(true);
       setLedger(true);
     };
@@ -101,6 +108,7 @@ export function App() {
       window.removeEventListener('ktrade:log', onLedger);
       offHud();
       offPort();
+      setWindowOpen(false);
       setEvent(null);
       setLedger(false);
     };
@@ -126,11 +134,13 @@ export function App() {
   const choose = (choiceId: string) => {
     if (event) gameStore.dispatch({ type: 'EVENT_CHOICE', eventId: event.id, choiceId });
     setEvent(null);
-    if (!ledger) resumeSailing(); // 남은 창이 없을 때만 항해 재개
+    setWindowOpen(ledger);
+    resumeSailing(); // 남은 창이 있으면 무시된다
   };
   const closeLedger = () => {
     setLedger(false);
-    if (!event) resumeSailing();
+    setWindowOpen(!!event);
+    resumeSailing();
   };
   const epilogueLog = (e: LogInput) => {
     onLog(e);

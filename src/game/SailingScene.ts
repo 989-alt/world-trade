@@ -44,10 +44,13 @@ export function startSailing(state: GameState): void {
 }
 /** 항구 반경 안에서만 입항(Enter·스페이스·닻·「입항」 버튼 공용) */
 export const requestDock = () => active?.dock();
+/** 무전 카드·일지 중 열린 창이 있다(app.tsx 가 알린다) — 그동안은 항해를 재개하지 않는다(§4.7) */
+let windowOpen = false;
+export const setWindowOpen = (open: boolean) => { windowOpen = open; };
 /** 무전 카드·일지가 닫힐 때: 배는 제자리에서 다시 움직인다 */
-export const resumeSailing = () => active?.resumeFromDialog(false);
+export const resumeSailing = () => { if (!windowOpen) active?.resumeFromDialog(false); };
 /** 항구에서 출항할 때: 바로 다시 입항되지 않게 반경 밖 출항점으로 옮긴 뒤 재개 */
-export const departPort = () => active?.resumeFromDialog(true);
+export const departPort = () => { if (!windowOpen) active?.resumeFromDialog(true); };
 
 const emit = (name: string, detail: unknown) => window.dispatchEvent(new CustomEvent(name, { detail }));
 const toWorld = (p: Pos) => ({ x: p.x * WORLD_W, y: p.y * WORLD_H });

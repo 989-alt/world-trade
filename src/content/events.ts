@@ -70,10 +70,10 @@ export const EVENTS: GameEvent[] = [
     source: '지도서 pp.236~237', zone: 'strait-of-malacca',
     choices: [
       { id: 'near', labelKo: '가까운 타이에서 계속 산다', plus: '가까워 연료가 덜 든다', minus: '가뭄으로 설탕 값이 크게 올랐다',
-        effect: { type: 'price', good: 'sugar', factor: 1.5 },
+        effect: { type: 'price', good: 'sugar', factor: 1.5, port: 'thai' },
         feedbackKo: '기후 변화나 가뭄처럼 상황이 바뀌면 무역 조건도 달라집니다.', source: '지도서 pp.236~237' },
-      { id: 'far', labelKo: '먼 브라질로 바꾼다', plus: '설탕 값이 덜 오른다', minus: '멀어서 연료가 더 든다',
-        effect: { type: 'price', good: 'sugar', factor: 1.2 },
+      { id: 'far', labelKo: '먼 브라질로 바꾼다', plus: '브라질 설탕 값은 그대로다', minus: '멀어서 연료가 더 든다',
+        effect: { type: 'none' },
         feedbackKo: '인도네시아는 설탕 수입국을 가까운 타이와 인도에서 먼 브라질로 바꾸기도 했습니다.', source: '지도서 pp.236~237' },
     ],
   },

@@ -44,6 +44,9 @@ export function compareBars(log: LogEvent[]) {
   };
 }
 
+/** 음수는 −35 처럼 수학 기호(U+2212)로 */
+export const signed = (n: number) => (n < 0 ? `\u2212${-n}` : `${n}`);
+
 /** 저장 로그에서 문장 화면 복원(C7): 제출 수 = sentence 로그 수(한 판에 에필로그 1번), 선택 = 마지막 제출 */
 export function whyInit(log: LogEvent[]) {
   const s = log.flatMap((e) => (e.type === 'sentence' ? [e] : []));
@@ -98,14 +101,10 @@ function WhyScreen({ log, onLog, onDone }: { log: LogEvent[]; onLog: (e: LogInpu
         </div>
         <div class="ep-col">
           <h2 class="ep-h">무역한 턴 · 머문 턴</h2>
-          {b.stayTurns === 0 ? (
-            <p class="ep-note">머문 턴 없음</p>
-          ) : (
-            <div class="ep-bars">
-              <div class="ep-bar"><span>{b.tradeAvg}</span><i style={{ height: `${Math.max(8, (Math.abs(b.tradeAvg) / top) * 110)}px` }} /><span>무역한 턴</span></div>
-              <div class="ep-bar"><span>0</span><i class="low" style={{ height: '8px' }} /><span>머문 턴</span></div>
-            </div>
-          )}
+          <div class="ep-bars">
+            <div class="ep-bar"><span>{signed(b.tradeAvg)}</span><i style={{ height: `${Math.max(8, (Math.abs(b.tradeAvg) / top) * 110)}px` }} /><span>무역한 턴</span></div>
+            <div class="ep-bar"><span>0</span><i class="low" style={{ height: '8px' }} /><span>머문 턴</span></div>
+          </div>
         </div>
       </div>
       {submits >= 1 && !editing && <button type="button" class="ep-btn orange" onClick={onDone}>다음</button>}

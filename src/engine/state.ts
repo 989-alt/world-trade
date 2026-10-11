@@ -101,7 +101,10 @@ function chooseEvent(state: GameState, eventId: EventId, choiceId: string): Resu
   const e = choice.effect;
   let flags = state.flags;
   let reputation = state.reputation;
-  if (e.type === 'price') flags = { ...flags, priceFactor: { ...flags.priceFactor, [e.good]: (flags.priceFactor[e.good] ?? 1) * e.factor } };
+  if (e.type === 'price') {
+    const k = e.port ? (`${e.port}:${e.good}` as const) : e.good;
+    flags = { ...flags, priceFactor: { ...flags.priceFactor, [k]: (flags.priceFactor[k] ?? 1) * e.factor } };
+  }
   if (e.type === 'refuelDiscount') flags = { ...flags, refuelFactor: flags.refuelFactor * e.factor };
   if (e.type === 'factoryLevel') flags = { ...flags, factoryDelta: flags.factoryDelta + e.delta };
   if (e.type === 'reputation') reputation += e.delta;
