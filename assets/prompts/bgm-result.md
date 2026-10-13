@@ -1,0 +1,1 @@
+Short triumphant results fanfare for a children's game. Bright brass, glockenspiel sparkle, snare roll into a warm resolving chord, 120 BPM, major key, proud and uplifting. About 30 seconds with a clear ending. Instrumental only, no vocals.
